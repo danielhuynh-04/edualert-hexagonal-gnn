@@ -1,0 +1,26 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Virtual environments & Node modules
+.venv/
+venv/
+env/
+node_modules/
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Databases & Local state
+*.db
+*.sqlite
+*.sqlite3
+
+# Optional local runtime logs
+*.log
+
