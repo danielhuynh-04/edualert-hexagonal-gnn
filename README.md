@@ -15,7 +15,7 @@
 
 **Tác giả:** **Huỳnh Lê Thanh Hải** · Cử nhân Khoa học Máy tính (Chương trình Tiên tiến — Chuyên ngành Cơ sở Dữ liệu)  
 **Đơn vị:** Trường Đại học Mở Thành phố Hồ Chí Minh (HCMC OU)  
-**GitHub:** [github.com/danielhuynh-04](https://github.com/danielhuynh-04) · **Kaggle:** [kaggle.com/lthanhhihunh](https://www.kaggle.com/lthanhhihunh) · **LinkedIn:** [linkedin.com/in/le-thanh-hai-huynh](https://www.linkedin.com/in/le-thanh-hai-huynh)
+**GitHub:** [github.com/danielhuynh-04](https://github.com/danielhuynh-04) · **Kaggle:** [kaggle.com/lthanhhihunh](https://www.kaggle.com/lthanhhihunh) ·
 
 ---
 
