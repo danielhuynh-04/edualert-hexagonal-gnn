@@ -801,14 +801,14 @@ function IndividualSlipTab({
 
             <div className="card">
               <h2>Quan hệ đồ thị lân cận (Top cạnh Sheaf Attention)</h2>
-              <p className="hint">Trọng số attention $\alpha_{vu}$ cho biết nhóm sinh viên nào có ảnh hưởng tương hỗ lớn nhất.</p>
+              <p className="hint">Trọng số attention &alpha;<sub>vu</sub> cho biết nhóm sinh viên nào có ảnh hưởng tương hỗ lớn nhất.</p>
               <table className="data">
                 <thead>
                   <tr>
                     <th>SV Lân cận</th>
                     <th>Quan hệ cạnh</th>
                     <th>ĐTB TL</th>
-                    <th>Trọng số Sheaf $\alpha$</th>
+                    <th>Trọng số Sheaf &alpha;</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1101,7 +1101,7 @@ function GraphNetworkTab({ graphData, onSelectStudent }) {
             </select>
           </div>
           <p className="hint">
-            Nhấp chuột vào một nút sinh viên để highlight lân cận và xem trọng số attention $\alpha_{vu}$.
+            Nhấp chuột vào một nút sinh viên để highlight lân cận và xem trọng số attention &alpha;<sub>vu</sub>.
           </p>
 
           <div className="svg-graph-box">
@@ -1200,7 +1200,7 @@ function GraphNetworkTab({ graphData, onSelectStudent }) {
         <div className="card">
           <h2>Cơ chế Sheaf Attention Networks</h2>
           <p className="hint" style={{ lineHeight: "1.6" }}>
-            Trong môi trường đào tạo tín chỉ, sinh viên khá và sinh viên yếu cùng làm việc nhóm là quan hệ dị thể (heterophily). Mô hình Sheaf gán mỗi cạnh một ánh xạ hạn chế học được $F_{ve}^\top F_{ue}$ và trọng số chú ý $\alpha_{vu}$, triệt tiêu hiện tượng over-smoothing để phát hiện sớm sinh viên có nguy cơ rớt môn.
+            Trong môi trường đào tạo tín chỉ, sinh viên khá và sinh viên yếu cùng làm việc nhóm là quan hệ dị thể (heterophily). Mô hình Sheaf gán mỗi cạnh một ánh xạ hạn chế học được F<sub>ve</sub><sup>T</sup> F<sub>ue</sub> và trọng số chú ý &alpha;<sub>vu</sub>, triệt tiêu hiện tượng over-smoothing để phát hiện sớm sinh viên có nguy cơ rớt môn.
           </p>
         </div>
       </div>
@@ -1487,29 +1487,31 @@ function AdvisorCopilotTab() {
       const res = await fetch("/api/copilot/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: textToSend }),
+        body: JSON.stringify({ query: textToSend, question: textToSend }),
       });
       if (res.ok) {
         const data = await res.json();
+        const cit = Array.isArray(data.citations) ? data.citations.join(" · ") : (data.citations || data.legal_basis || "");
         setMessages((prev) => [
           ...prev,
           {
             sender: "bot",
-            text: data.answer,
-            citation: data.legal_basis,
-            sql: data.sql_query,
+            text: data.answer || "Không có phản hồi từ hệ thống.",
+            citation: cit,
+            sql: data.sql_executed || data.sql_query,
           },
         ]);
       } else {
+        const errJson = await res.json().catch(() => ({}));
         setMessages((prev) => [
           ...prev,
-          { sender: "bot", text: "Xin lỗi, đã xảy ra lỗi khi kết nối tới Copilot Service." },
+          { sender: "bot", text: "Xin lỗi: " + (errJson.error || "Đã xảy ra lỗi khi kết nối tới Copilot Service.") },
         ]);
       }
     } catch (e) {
       setMessages((prev) => [
         ...prev,
-        { sender: "bot", text: "Lỗi kết nối: " + e.message },
+        { sender: "bot", text: "Lỗi kết nối Copilot: " + e.message },
       ]);
     } finally {
       setLoading(false);

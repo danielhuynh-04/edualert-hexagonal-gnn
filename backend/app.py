@@ -772,10 +772,14 @@ def api_export_report():
 @app.route("/api/copilot/ask", methods=["POST"])
 def api_copilot_ask():
     body = request.get_json(force=True, silent=True) or {}
-    q = (body.get("query") or "").strip()
+    q = (body.get("query") or body.get("question") or "").strip()
     if not q:
         return jsonify({"error": "Vui lòng nhập câu hỏi"}), 400
     res = answer_copilot_query(q)
+    # Ensure client compatibility for both citations and legal_basis/sql_query
+    if "citations" in res and isinstance(res["citations"], list):
+        res["legal_basis"] = " · ".join(res["citations"])
+    res["sql_query"] = res.get("sql_executed")
     return jsonify(res)
 
 
