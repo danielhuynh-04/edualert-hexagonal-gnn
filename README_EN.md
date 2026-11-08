@@ -15,7 +15,7 @@
 
 **Author:** **Huỳnh Lê Thanh Hải** · B.Sc. Computer Science (Advanced Program — Database Specialization)  
 **Institution:** Ho Chi Minh City Open University (HCMC OU)  
-**GitHub:** [github.com/danielhuynh-04](https://github.com/danielhuynh-04) · **Kaggle:** [kaggle.com/lthanhhihunh](https://www.kaggle.com/lthanhhihunh) · **LinkedIn:** [linkedin.com/in/le-thanh-hai-huynh](https://www.linkedin.com/in/le-thanh-hai-huynh)
+**GitHub:** [github.com/danielhuynh-04](https://github.com/danielhuynh-04) · **Kaggle:** [kaggle.com/lthanhhihunh](https://www.kaggle.com/lthanhhihunh) ·
 
 ---
 
