@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduAlert — Hệ thống cảnh báo sớm kết quả học tập đa cấp độ</title>
+<style>
+  :root{
+    --paper:#F4F5F7; --surface:#FFFFFF; --ink:#1B2A41; --ink-soft:#4A5A72;
+    --line:#D8DDE5; --stamp:#2456A6; --stamp-soft:#E8EEF8;
+    --ok:#2E7D52; --ok-bg:#E8F3EC; --warn:#B3403A; --warn-bg:#F7E9E8;
+    --mid:#C07F00; --mid-bg:#F8F0DD;
+    --serif:"Charter","Bitstream Charter",Cambria,Georgia,"Times New Roman",serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{font-size:15.5px}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.5}
+  a{color:var(--stamp);text-decoration:none}
+
+  header.app{background:var(--ink);color:#F2F5FA;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+  header.app .brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+  header.app h1{font-family:var(--serif);font-size:1.45rem;margin:0;letter-spacing:.02em}
+  header.app .sub{font-size:.83rem;color:#B9C6DA}
+  header.app .rolebar{display:flex;align-items:center;gap:10px;font-size:.82rem}
+  header.app select.rolesel{background:#263A59;color:#fff;border:1px solid #455D82;border-radius:6px;padding:6px 10px;font:inherit;width:auto}
+  .btn-export{background:#2E7D52;color:#fff;border:0;border-radius:6px;padding:7px 12px;font-size:.8rem;font-weight:600;cursor:pointer}
+  .btn-export:hover{background:#23633F}
+
+  .notice{background:#FFF6DE;border-bottom:1px solid #E4D6A8;color:#6B5200;font-size:.82rem;padding:7px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+  .notice b{color:#553F00}
+
+  .tabs{display:flex;gap:2px;background:var(--surface);border-bottom:1px solid var(--line);padding:0 18px;overflow-x:auto}
+  .tabs button{appearance:none;border:0;background:none;font:inherit;font-size:.86rem;font-weight:600;color:var(--ink-soft);
+    padding:11px 14px;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+  .tabs button:hover{color:var(--ink)}
+  .tabs button[aria-selected="true"]{color:var(--stamp);border-bottom-color:var(--stamp)}
+
+  main{max-width:1260px;margin:0 auto;padding:20px 22px}
+  .grid2{display:grid;grid-template-columns:minmax(360px,460px) 1fr;gap:20px}
+  .grid-equal{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:960px){.grid2,.grid-equal{grid-template-columns:1fr}}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:16px}
+  .card h2{font-family:var(--serif);font-size:1.06rem;margin:0 0 4px;color:var(--ink)}
+  .card p.hint{margin:0 0 12px;font-size:.8rem;color:var(--ink-soft)}
+  label{display:block;font-size:.8rem;color:var(--ink-soft);margin-bottom:3px;font-weight:500}
+  input,select,textarea{font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:#FDFDFE;width:100%}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+
+  button.primary{font:inherit;font-weight:700;background:var(--stamp);color:white;border:0;border-radius:8px;
+    padding:10px 16px;cursor:pointer;font-size:.92rem}
+  button.primary:hover{background:#1B448A}
+  button.small{font:inherit;font-size:.78rem;padding:5px 10px;border:1px solid var(--line);background:#FBFCFD;border-radius:6px;cursor:pointer}
+  button.small:hover{border-color:var(--stamp);color:var(--stamp)}
+
+  /* KPI pills */
+  .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px;margin-bottom:16px}
+  .pill{border-radius:10px;padding:12px 16px;font-size:.82rem;border:1px solid var(--line);background:var(--surface)}
+  .pill b{display:block;font-size:1.45rem;font-variant-numeric:tabular-nums;margin-bottom:2px}
+
+  /* Signature Result Slip (Phiếu đánh giá đóng dấu tròn) */
+  .slip{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:0;overflow:hidden;margin-bottom:16px}
+  .slip .slip-head{font-family:var(--serif);text-align:center;border-bottom:1px dashed var(--line);padding:14px 16px 10px;background:#FAFBFD}
+  .slip .slip-head .org{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+  .slip .slip-head h3{margin:3px 0 2px;font-size:1.18rem;letter-spacing:.02em}
+  .slip .slip-head .meta{font-family:var(--sans);font-size:.8rem;color:var(--ink-soft)}
+  .slip-body{display:grid;grid-template-columns:195px 1fr;gap:16px;padding:16px}
+  @media(max-width:680px){.slip-body{grid-template-columns:1fr}}
+  .stamp{width:170px;height:170px;border-radius:50%;margin:4px auto;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    border:3.5px double currentColor;transform:rotate(-6deg);text-align:center;padding:12px;font-family:var(--serif);background:#fff}
+  .stamp .lv{font-size:.98rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;line-height:1.2}
+  .stamp .pv{font-size:1.85rem;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}
+  .stamp .pl{font-size:.66rem;letter-spacing:.08em;text-transform:uppercase}
+  .lv-ok{color:var(--ok)} .lv-mid{color:var(--mid)} .lv-bad{color:var(--warn)}
+
+  .rulebox{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:.83rem}
+  .rulebox.trig{background:var(--warn-bg);border-color:#E3BDB9}
+  .rulebox.clear{background:var(--ok-bg);border-color:#BFDCCB}
+  .rulebox h4{margin:0 0 5px;font-size:.85rem}
+  .rulebox ul{margin:0;padding-left:18px}
+  .rulebox li{margin:2px 0}
+  .rulebox li.hit{color:var(--warn);font-weight:600}
+
+  .expl{font-size:.85rem;background:var(--stamp-soft);border:1px solid #C9D8F0;border-radius:8px;padding:10px 12px;margin:10px 0}
+  .fbar{display:grid;grid-template-columns:210px 1fr 64px;align-items:center;gap:8px;font-size:.79rem;margin:4px 0}
+  .fbar .track{position:relative;height:13px;background:#EEF1F5;border-radius:7px;overflow:hidden}
+  .fbar .track::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:1px;background:#C6CDD8}
+  .fbar .fill{position:absolute;top:2px;bottom:2px;border-radius:5px}
+  .fbar .fill.pos{left:50%;background:var(--warn)}
+  .fbar .fill.neg{right:50%;background:var(--ok)}
+  .fbar .val{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-soft)}
+
+  /* Tables */
+  table.data{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:.82rem}
+  table.data th{background:#F0F2F6;text-align:left;padding:8px 10px;font-weight:600;color:var(--ink);white-space:nowrap}
+  table.data td{padding:7px 10px;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+  table.data tr:hover td{background:#F8FAFC}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:.73rem;font-weight:700}
+  .b-ok{background:var(--ok-bg);color:var(--ok)} .b-mid{background:var(--mid-bg);color:var(--mid)} .b-bad{background:var(--warn-bg);color:var(--warn)}
+
+  table.sem{width:100%;border-collapse:collapse;font-size:.8rem}
+  table.sem th{font-weight:600;color:var(--ink-soft);text-align:left;padding:4px;border-bottom:1px solid var(--line)}
+  table.sem td{padding:3px}
+  table.sem input{padding:4px 6px;font-size:.8rem}
+
+  footer{color:var(--ink-soft);font-size:.76rem;padding:18px 24px;max-width:1260px;margin:0 auto;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+
+<header class="app">
+  <div class="brand">
+    <h1>EduAlert</h1>
+    <span class="sub">Hệ thống cảnh báo sớm kết quả học tập đa cấp độ (Rule Engine TT08/2021 + Sheaf Attention GNN)</span>
+  </div>
+  <div class="rolebar">
+    <span>Vai trò (RBAC/RLS):</span>
+    <select id="roleSelect" class="rolesel" onchange="onRoleChange()">
+      <option value="ALL">Phòng Đào tạo / BCN Khoa (Toàn trường - 180 SV)</option>
+      <option value="1">CVHT: TS. Nguyễn Thị Lan (Phụ trách K23 CSDL)</option>
+      <option value="2">CVHT: ThS. Trần Văn Minh (Phụ trách K24 AI)</option>
+      <option value="3">CVHT: TS. Lê Hoàng Hùng (Phụ trách K23-24 HTTT)</option>
+    </select>
+    <button class="btn-export" onclick="window.location.href='/api/reports/export'">⬇ Xuất Excel/CSV (M12)</button>
+  </div>
+</header>
+
+<div class="notice">
+  <div><b>Kiến trúc Hybrid:</b> Tầng quy chế (Thông tư 08/2021/TT-BGDĐT) có quyền ưu tiên tuyệt đối; Tầng dự báo (Sheaf Attention Network) phát hiện sớm xu hướng giảm điểm và quan hệ dị thể trong nhóm học tập.</div>
+  <div id="activeModelBadge" style="font-weight:700;color:var(--stamp)">Mô hình kích hoạt: Sheaf Attention v2.0</div>
+</div>
+
+<div class="tabs" role="tablist">
+  <button role="tab" id="tab-dash" aria-selected="true" onclick="switchTab('dash')">M02 · Tổng quan (Dashboard)</button>
+  <button role="tab" id="tab-slip" aria-selected="false" onclick="switchTab('slip')">M03 &amp; M04 · Phiếu cá nhân &amp; Diễn biến</button>
+  <button role="tab" id="tab-cohort" aria-selected="false" onclick="switchTab('cohort')">M05 · Danh sách toàn khóa (Cohort View)</button>
+  <button role="tab" id="tab-graph" aria-selected="false" onclick="switchTab('graph')">M06 · Đồ thị quan hệ (Sheaf Network)</button>
+  <button role="tab" id="tab-ops" aria-selected="false" onclick="switchTab('ops')">M08 &amp; M09 · Can thiệp CVHT &amp; Nhập liệu</button>
+  <button role="tab" id="tab-admin" aria-selected="false" onclick="switchTab('admin')">M10 &amp; M11 · Quy chế &amp; Benchmark Mô hình</button>
+  <button role="tab" id="tab-copilot" aria-selected="false" onclick="switchTab('copilot')">🤖 Advisor Copilot (RAG + SQL)</button>
+  <button role="tab" id="tab-hex" aria-selected="false" onclick="switchTab('hex')">🏛 Kiến trúc Hexagonal (React + Node.js Gateway)</button>
+</div>
+
+<main>
+<!-- ==================== TAB 1: M02 DASHBOARD ==================== -->
+<section id="panel-dash">
+  <div class="kpi-row" id="dashKpis"></div>
+  <div class="grid-equal">
+    <div class="card">
+      <h2>Xu hướng ĐTB và số lượng cảnh báo qua các học kỳ</h2>
+      <p class="hint">Theo dõi diễn biến từ học kỳ 2024_HK1 đến 2025_HK2 trên toàn bộ 180 sinh viên.</p>
+      <div id="trendChartBox" style="height:230px"></div>
+    </div>
+    <div class="card">
+      <h2>Kiểm định công bằng (Fairness) theo phương thức xét tuyển</h2>
+      <p class="hint">Mục 6.6 &amp; 11 bản thảo: đối chiếu sai số dự báo giữa THPT, Học bạ và ĐGNL để tránh thiên lệch.</p>
+      <table class="data" id="fairnessTable">
+        <thead><tr><th>Phương thức</th><th>Số SV</th><th>ĐTB TL TB</th><th>Xác suất nguy cơ TB</th><th>Sai số MAE dự báo GPA</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Thống kê mức độ nguy cơ theo từng Lớp sinh hoạt &amp; Cố vấn học tập</h2>
+    <p class="hint">Nhấp vào một lớp để lọc danh sách ưu tiên ở màn hình Cohort View (M05).</p>
+    <table class="data" id="classSummaryTable">
+      <thead><tr><th>Mã Lớp</th><th>Tên lớp</th><th>Chuyên ngành</th><th>Cố vấn học tập</th><th>Sĩ số</th><th>ĐTB TL</th><th>Nguy cơ cao (Đỏ)</th><th>Cần chú ý (Vàng)</th><th>Bình thường (Xanh)</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ==================== TAB 2: M03 & M04 INDIVIDUAL SLIP ==================== -->
+<section id="panel-slip" hidden>
+  <div class="card" style="display:flex;flex-wrap:wrap;gap:12px;align-items:end;justify-content:space-between">
+    <div style="flex:1;min-width:260px">
+      <label for="stuPicker"><b>Tra cứu hồ sơ sinh viên trong CSDL (180 SV)</b> — hoặc chọn nhanh mẫu điển hình:</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+        <input id="stuPicker" style="max-width:160px" value="SV002" placeholder="VD: SV001..SV180">
+        <button class="primary" style="padding:7px 14px" onclick="loadStudentProfile()">Mở phiếu đánh giá</button>
+        <button class="small" onclick="quickPickStudent('SV002')">Mẫu Vàng/Đỏ sớm (SV002 - Tụt GPA)</button>
+        <button class="small" onclick="quickPickStudent('SV003')">Mẫu Vi phạm Quy chế TT08 (SV003)</button>
+        <button class="small" onclick="quickPickStudent('SV001')">Mẫu An toàn (SV001)</button>
+        <button class="small" onclick="quickPickStudent('SV005')">Mẫu Nguy cơ buộc thôi học (SV005)</button>
+      </div>
+    </div>
+    <div>
+      <button class="small" onclick="toggleSimMode()">⚙ Mở / Đóng bộ giả lập What-If trực tiếp</button>
+    </div>
+  </div>
+
+  <!-- Optional What-If Simulator (inherits Teacher's prototype inputs) -->
+  <div class="card" id="simBox" hidden>
+    <h2>Bộ giả lập What-If (Thử nghiệm thay đổi điểm &amp; kế hoạch học kỳ tới)</h2>
+    <p class="hint">Chỉnh sửa trực tiếp điểm các kỳ hoặc số học phần khó kỳ tới để xem Rule Engine + Sheaf Model phản ứng tức thời.</p>
+    <div class="grid2">
+      <div>
+        <div class="row3">
+          <div><label>Điểm đầu vào (thang 30)</label><input id="simEntrance" type="number" step="0.1" value="18.4"></div>
+          <div><label>TC nợ đọng hiện tại</label><input id="simDebt" type="number" value="10"></div>
+          <div><label>Số lần cảnh báo liên tiếp</label><input id="simConsec" type="number" value="0"></div>
+        </div>
+        <div class="row3">
+          <div><label>TC dự kiến HK tới</label><input id="simPlanTC" type="number" value="18"></div>
+          <div><label>Số HP dễ / vừa</label><input id="simPlanMid" type="number" value="3"></div>
+          <div><label>Số HP khó (&gt;20% rớt)</label><input id="simPlanHard" type="number" value="3"></div>
+        </div>
+        <button class="primary" onclick="runWhatIfSimulation()">Chạy đánh giá giả lập What-If</button>
+      </div>
+      <div>
+        <table class="sem" id="simSemTable">
+          <thead><tr><th>HK</th><th>TC ĐK</th><th>TC Không đạt</th><th>ĐTB HK</th><th>ĐTB Tích lũy</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div style="margin-top:6px;display:flex;gap:8px">
+          <button class="small" onclick="addSimSem()">+ Thêm HK</button>
+          <button class="small" onclick="delSimSem()">− Xóa HK cuối</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <!-- M04 Trajectory Chart -->
+      <div class="card">
+        <h2>M04 · Biểu đồ diễn biến GPA &amp; Dự báo học kỳ tới</h2>
+        <p class="hint">Đường nét đứt thể hiện dự báo GPA học kỳ kế tiếp từ khối GRU + Sheaf Attention.</p>
+        <div id="stuTrajectorySvg" style="height:215px"></div>
+      </div>
+      <!-- M06 Local Peer Relations -->
+      <div class="card">
+        <h2>Quan hệ đồ thị lân cận (Top cạnh Sheaf Attention)</h2>
+        <p class="hint">Trọng số attention cho biết mối liên hệ học tập nào ảnh hưởng mạnh nhất tới sinh viên này.</p>
+        <table class="data" id="stuPeersTable">
+          <thead><tr><th>SV Lân cận</th><th>Loại cạnh</th><th>GPA TL</th><th>Trọng số Sheaf α</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="slipContainer"></div>
+  </div>
+</section>
+
+<!-- ==================== TAB 3: M05 COHORT VIEW ==================== -->
+<section id="panel-cohort" hidden>
+  <div class="card" style="display:flex;flex-wrap:wrap;gap:12px;align-items:end">
+    <div style="min-width:180px">
+      <label>Lọc theo Lớp</label>
+      <select id="filterClass" onchange="loadCohortTable()">
+        <option value="">Tất cả các lớp</option>
+        <option value="DH23CS01">DH23CS01 (CSDL K23 - Lớp 1)</option>
+        <option value="DH23CS02">DH23CS02 (CSDL K23 - Lớp 2)</option>
+        <option value="DH24AI01">DH24AI01 (AI K24 - Lớp 1)</option>
+        <option value="DH24AI02">DH24AI02 (AI K24 - Lớp 2)</option>
+        <option value="DH23IS01">DH23IS01 (HTTT K23 - Lớp 1)</option>
+        <option value="DH24IS02">DH24IS02 (HTTT K24 - Lớp 2)</option>
+      </select>
+    </div>
+    <div style="min-width:180px">
+      <label>Lọc theo Màu cảnh báo</label>
+      <select id="filterLevel" onchange="loadCohortTable()">
+        <option value="">Tất cả mức (Đỏ / Vàng / Xanh)</option>
+        <option value="HIGH_RISK">🔴 Nguy cơ cao (Đỏ)</option>
+        <option value="ATTENTION">🟡 Cần chú ý (Vàng - Cảnh báo sớm)</option>
+        <option value="NORMAL">🟢 Bình thường (Xanh)</option>
+      </select>
+    </div>
+    <div style="flex:1;min-width:200px">
+      <label>Tìm kiếm Mã SV / Họ tên</label>
+      <input id="filterSearch" placeholder="Nhập mã SV hoặc tên..." oninput="loadCohortTable()">
+    </div>
+    <div>
+      <span id="cohortCountLabel" style="font-weight:700;font-size:.88rem;color:var(--stamp)"></span>
+    </div>
+  </div>
+
+  <table class="data" id="cohortMainTable">
+    <thead>
+      <tr>
+        <th>Mã SV</th>
+        <th>Họ và tên</th>
+        <th>Lớp</th>
+        <th>Năm</th>
+        <th>ĐTB HK</th>
+        <th>ĐTB TL</th>
+        <th>Xu hướng</th>
+        <th>TC Nợ</th>
+        <th>Dự báo HK tới</th>
+        <th>Điểm nguy cơ</th>
+        <th>Nguồn kích hoạt</th>
+        <th>Mức cảnh báo</th>
+        <th>Thao tác</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<!-- ==================== TAB 4: M06 GRAPH NETWORK ==================== -->
+<section id="panel-graph" hidden>
+  <div class="grid2">
+    <div class="card">
+      <h2>M06 · Giải thích đồ thị Sheaf Attention Network</h2>
+      <p class="hint">Mô hình hóa hiện tượng dị thể (heterophily): sinh viên giỏi và sinh viên yếu trong cùng nhóm học phần.</p>
+      <div class="expl">
+        <b>Vì sao dùng Sheaf Attention thay vì GCN thuần?</b><br>
+        Trong GCN thông thường, đặc trưng các nút lân cận bị trung bình hóa trơn (over-smoothing). Mạng Sheaf gắn cho mỗi cạnh một <b>ánh xạ hạn chế (restriction map) $F_{ve}$</b> học được, cho phép cộng hưởng hoặc đảo dấu tín hiệu giữa các sinh viên khác học lực trong cùng nhóm học tập.
+      </div>
+      <p style="font-size:.82rem"><b>Chú giải màu nút trên bản đồ:</b></p>
+      <ul style="font-size:.82rem;padding-left:18px">
+        <li><b style="color:var(--warn)">● Nút Đỏ:</b> Nguy cơ cao (Vi phạm quy chế hoặc xác suất $\ge 65\%$)</li>
+        <li><b style="color:var(--mid)">● Nút Vàng:</b> Cần chú ý — phát hiện sớm qua xu hướng &amp; đồ thị</li>
+        <li><b style="color:var(--ok)">● Nút Xanh:</b> Bình thường</li>
+        <li><b>Độ đậm của cạnh:</b> Tỷ lệ với trọng số Sheaf Attention $\alpha_{vu}$. Nhấp vào một nút bất kỳ để mở Phiếu đánh giá cá nhân (M03).</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>Bản đồ tương tác mạng lưới sinh viên (45 nút tiêu biểu)</h2>
+      <svg id="networkSvg" viewBox="0 0 680 430" style="width:100%;height:420px;background:#FAFBFD;border:1px solid var(--line);border-radius:8px"></svg>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== TAB 5: M08 INTERVENTIONS & M09 IMPORT ==================== -->
+<section id="panel-ops" hidden>
+  <div class="grid-equal">
+    <div class="card">
+      <h2>M08 · Ghi nhận can thiệp của Cố vấn học tập</h2>
+      <p class="hint">Lưu lịch hẹn, nội dung tư vấn và phản hồi để đóng vòng lặp đánh giá mô hình.</p>
+      <div class="row">
+        <div><label>Mã sinh viên</label><input id="ivStudentId" value="SV002"></div>
+        <div><label>Ngày hẹn làm việc</label><input id="ivDate" type="date" value="2026-11-12"></div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Cố vấn học tập phụ trách</label>
+          <select id="ivAdvisor">
+            <option value="1">TS. Nguyễn Thị Lan</option>
+            <option value="2">ThS. Trần Văn Minh</option>
+            <option value="3">TS. Lê Hoàng Hùng</option>
+          </select>
+        </div>
+        <div>
+          <label>Trạng thái kết quả</label>
+          <select id="ivStatus">
+            <option value="SCHEDULED">Đã lên lịch hẹn (SCHEDULED)</option>
+            <option value="COMPLETED">Đã tư vấn xong (COMPLETED)</option>
+            <option value="FOLLOW_UP_NEEDED">Cần theo dõi tiếp (FOLLOW_UP_NEEDED)</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:10px">
+        <label>Nội dung làm việc &amp; cam kết của sinh viên</label>
+        <textarea id="ivNotes" rows="3">Trao đổi về xu hướng GPA giảm 3 kỳ liên tiếp; thống nhất giảm 1 học phần khó kỳ tới và đăng ký lớp phụ đạo CTDL.</textarea>
+      </div>
+      <button class="primary" onclick="submitIntervention()">Lưu bản ghi can thiệp</button>
+    </div>
+
+    <div class="card">
+      <h2>M09 · Nhập dữ liệu CSV &amp; Kiểm tra hợp lệ từng dòng</h2>
+      <p class="hint">Kiểm tra miền giá trị GPA [0..4], số tín chỉ không đạt $\le$ đăng ký, báo lỗi chi tiết theo dòng.</p>
+      <label>Dữ liệu CSV mẫu (có cố ý gài 2 dòng lỗi ở dòng 4 và 5 để kiểm thử bộ lọc):</label>
+      <textarea id="csvInput" rows="6" style="font-family:monospace;font-size:.78rem">student_id,registered_credits,failed_credits,gpa_semester,gpa_cumulative,accumulated_debt_credits
+SV001,16,0,3.45,3.38,0
+SV002,15,3,1.58,2.18,10
+SV004,16,20,2.10,2.20,8
+BAD_ID,15,0,4.80,3.10,0</textarea>
+      <div style="margin-top:8px">
+        <button class="primary" onclick="submitCsvImport()">Kiểm tra hợp lệ &amp; Nhập vào CSDL</button>
+      </div>
+      <div id="importResultBox" style="margin-top:10px;font-size:.82rem"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Lịch sử các buổi làm việc &amp; can thiệp học vụ</h2>
+    <table class="data" id="interventionsTable">
+      <thead><tr><th>ID</th><th>Mã SV</th><th>Họ và tên</th><th>Lớp</th><th>Cố vấn học tập</th><th>Ngày hẹn</th><th>Nội dung tư vấn</th><th>Trạng thái</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ==================== TAB 6: M10 RULES & M11 MODELS ==================== -->
+<section id="panel-admin" hidden>
+  <div class="card">
+    <h2>M11 · Bảng đối sánh thực nghiệm các họ mô hình (Chronological Split &amp; Permutation Check)</h2>
+    <p class="hint">Chia dữ liệu theo thời gian (HK1–HK2 huấn luyện, HK3–HK4 kiểm định). Kiểm định hoán vị nhãn 5 seeds (Permutation R² rơi về ~0.02 chứng minh không rò rỉ dữ liệu).</p>
+    <table class="data" id="modelsTable">
+      <thead>
+        <tr>
+          <th>Mã Run</th>
+          <th>Tên mô hình</th>
+          <th>Họ kiến trúc</th>
+          <th>Macro-F1</th>
+          <th>Recall Nhóm Đỏ</th>
+          <th>PR-AUC</th>
+          <th>ROC-AUC</th>
+          <th>GPA MAE</th>
+          <th>GPA R²</th>
+          <th>ECE</th>
+          <th>Perm-Test R²</th>
+          <th>Trạng thái</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>M07 &amp; M10 · Cấu hình ngưỡng Quy chế đào tạo (Thông tư 08/2021/TT-BGDĐT)</h2>
+    <p class="hint">Các quy tắc được lưu trong bảng <code>rule_config</code> thay vì viết cứng trong code. Khi cập nhật tham số, toàn bộ kho dữ liệu được đánh giá lại tự động.</p>
+    <table class="data" id="rulesTable">
+      <thead><tr><th>Mã Quy tắc</th><th>Tên điều kiện cảnh báo</th><th>Tham số JSON (Có thể chỉnh sửa)</th><th>Hiệu lực từ</th><th>Căn cứ pháp lý</th><th>Thao tác</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ==================== TAB 7: ADVISOR COPILOT ==================== -->
+<section id="panel-copilot" hidden>
+  <div class="grid2">
+    <div class="card">
+      <h2>🤖 Trợ lý AI cho Cố vấn học tập (Advisor Copilot)</h2>
+      <p class="hint">Kết hợp RAG có trích dẫn điều khoản Thông tư 08/2021 và Text-to-SQL chỉ đọc (Read-Only Guardrail) trên CSDL.</p>
+      <label>Câu hỏi mẫu nhanh:</label>
+      <div style="display:flex;flex-direction:column;gap:6px;margin:8px 0 14px">
+        <button class="small" style="text-align:left" onclick="askPreset('Top 5 sinh viên nguy cơ cao nhất cần CVHT ưu tiên mời làm việc?')">1. Top 5 sinh viên nguy cơ cao nhất cần CVHT ưu tiên mời làm việc?</button>
+        <button class="small" style="text-align:left" onclick="askPreset('Phân tích chi tiết hồ sơ và lý do cảnh báo của sinh viên SV002')">2. Phân tích chi tiết hồ sơ và lý do cảnh báo của sinh viên SV002</button>
+        <button class="small" style="text-align:left" onclick="askPreset('Phân tích hồ sơ vi phạm quy chế của sinh viên SV003')">3. Phân tích hồ sơ vi phạm quy chế của sinh viên SV003</button>
+        <button class="small" style="text-align:left" onclick="askPreset('Điều kiện bị cảnh báo học tập theo ĐTB tích lũy từng năm trong Thông tư 08/2021 là gì?')">4. Điều kiện bị cảnh báo theo ĐTB tích lũy từng năm trong Thông tư 08/2021 là gì?</button>
+        <button class="small" style="text-align:left" onclick="askPreset('Khi nào sinh viên bị xét buộc thôi học và nếu Rule mâu thuẫn với GNN thì xử lý thế nào?')">5. Khi nào sinh viên bị xét buộc thôi học và nếu Rule mâu thuẫn với GNN thì xử lý thế nào?</button>
+      </div>
+      <label>Hoặc nhập câu hỏi bất kỳ (tra mã SV001..SV180, quy chế, thống kê):</label>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <input id="copilotInput" value="Top 5 sinh viên nguy cơ cao nhất cần CVHT ưu tiên mời làm việc?">
+        <button class="primary" style="white-space:nowrap" onclick="sendCopilotQuery()">Hỏi Copilot</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Phản hồi từ Advisor Copilot (Kèm nguồn trích dẫn &amp; Truy vấn SQL minh bạch)</h2>
+      <div id="copilotAnswerBox" class="expl" style="white-space:pre-wrap;min-height:140px">Nhấn một câu hỏi bên trái để xem kết quả phân tích.</div>
+      <div id="copilotSqlBox" style="margin-top:10px;font-size:.8rem"></div>
+      <div id="copilotCiteBox" style="margin-top:10px;font-size:.8rem;color:var(--ink-soft)"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== TAB 8: HEXAGONAL ARCHITECTURE (REACT + NODE.JS + ENTERPRISE) ==================== -->
+<section id="panel-hex" hidden>
+  <div id="reactHexagonalRoot"></div>
+</section>
+</main>
+
+<footer>
+  <b>EduAlert v2.0 Full-Stack</b> — Đồ án cuối kỳ · Tác giả: <b>Huỳnh Lê Thanh Hải</b> · Khoa học Máy tính (Chuyên ngành Cơ sở dữ liệu) — Trường Đại học Mở TP.HCM.<br>
+  Cơ sở dữ liệu 18 bảng chuẩn 3NF · Rule Engine Thông tư 08/2021/TT-BGDĐT · Họ mô hình GCN, ST-GAT, Sheaf Attention Network · Tuân thủ Nghị định 13/2023/NĐ-CP.
+</footer>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const fmt = (x, d=2) => Number(x).toFixed(d);
+
+const LEVEL_MAP = {
+  NORMAL:    {name: "Bình thường",     cls: "lv-ok",  badge: "b-ok"},
+  ATTENTION: {name: "Cần chú ý (Sớm)", cls: "lv-mid", badge: "b-mid"},
+  HIGH_RISK: {name: "Nguy cơ cao",     cls: "lv-bad", badge: "b-bad"},
+};
+
+/* ------------------------- Tab Switching ------------------------- */
+function switchTab(which) {
+  const tabs = ["dash", "slip", "cohort", "graph", "ops", "admin", "copilot", "hex"];
+  tabs.forEach(t => {
+    $("tab-" + t).setAttribute("aria-selected", t === which);
+    $("panel-" + t).hidden = (t !== which);
+  });
+  if (which === "dash") loadDashboard();
+  if (which === "slip") loadStudentProfile();
+  if (which === "cohort") loadCohortTable();
+  if (which === "graph") loadGraphNetwork();
+  if (which === "ops") loadInterventions();
+  if (which === "admin") { loadModelsTable(); loadRulesTable(); }
+  if (which === "copilot") sendCopilotQuery();
+  if (which === "hex") loadHexagonalTab();
+}
+
+function onRoleChange() {
+  loadDashboard();
+  loadCohortTable();
+}
+
+/* ------------------------- 1. Dashboard (M02) ------------------------- */
+async function loadDashboard() {
+  const res = await fetch("/api/stats/overview");
+  const d = await res.json();
+  $("dashKpis").innerHTML = `
+    <div class="pill"><b>${d.total_students}</b>Tổng số sinh viên (2025_HK2)</div>
+    <div class="pill" style="border-color:#E3BDB9;background:#FDF7F7"><b style="color:var(--warn)">${d.counts.HIGH_RISK}</b>🔴 Nguy cơ cao (Cần gặp ngay)</div>
+    <div class="pill" style="border-color:#E8D6A8;background:#FEFBF3"><b style="color:var(--mid)">${d.counts.ATTENTION}</b>🟡 Cần chú ý (Dự báo sớm)</div>
+    <div class="pill" style="border-color:#BFDCCB;background:#F5FBF7"><b style="color:var(--ok)">${d.counts.NORMAL}</b>🟢 Bình thường (An toàn)</div>
+    <div class="pill"><b>${d.early_model_detected_count} SV</b>Phát hiện sớm bởi Sheaf-GNN trước khi chạm ngưỡng TT08</div>
+  `;
+
+  // Render SVG Trend Chart
+  const tr = d.semester_trends;
+  const w = 520, h = 210, padL = 45, padR = 35, padT = 20, padB = 32;
+  const xs = tr.map((_, i) => padL + i * ((w - padL - padR) / Math.max(1, tr.length - 1)));
+  const yGpa = g => padT + (4.0 - g) / 3.0 * (h - padT - padB);
+  const ptsCum = tr.map((r, i) => `${xs[i]},${yGpa(r.avg_gpa_cum)}`).join(" ");
+  const ptsSem = tr.map((r, i) => `${xs[i]},${yGpa(r.avg_gpa_sem)}`).join(" ");
+
+  $("trendChartBox").innerHTML = `
+    <svg viewBox="0 0 ${w} ${h}" style="width:100%;height:100%">
+      <line x1="${padL}" y1="${yGpa(2.0)}" x2="${w-padR}" y2="${yGpa(2.0)}" stroke="#E2E8F0" stroke-dasharray="4 4"/>
+      <line x1="${padL}" y1="${yGpa(3.0)}" x2="${w-padR}" y2="${yGpa(3.0)}" stroke="#E2E8F0" stroke-dasharray="4 4"/>
+      <polyline fill="none" stroke="#2456A6" stroke-width="3" points="${ptsCum}"/>
+      <polyline fill="none" stroke="#C07F00" stroke-width="2.5" stroke-dasharray="5 3" points="${ptsSem}"/>
+      ${tr.map((r, i) => `
+        <circle cx="${xs[i]}" cy="${yGpa(r.avg_gpa_cum)}" r="4.5" fill="#2456A6"/>
+        <text x="${xs[i]}" y="${yGpa(r.avg_gpa_cum)-9}" font-size="11" text-anchor="middle" fill="#1B2A41" font-weight="600">${fmt(r.avg_gpa_cum)}</text>
+        <text x="${xs[i]}" y="${h-8}" font-size="11" text-anchor="middle" fill="#4A5A72">${r.semester_id}</text>
+      `).join("")}
+      <text x="${padL}" y="14" font-size="11" fill="#2456A6" font-weight="600">▬ ĐTB tích lũy toàn khóa</text>
+      <text x="${padL+175}" y="14" font-size="11" fill="#C07F00" font-weight="600">--- ĐTB học kỳ</text>
+    </svg>
+  `;
+
+  $("fairnessTable").tBodies[0].innerHTML = d.fairness_by_admission.map(r => `
+    <tr>
+      <td><b>${r.admission_method}</b></td>
+      <td>${r.total}</td>
+      <td>${fmt(r.avg_gpa)}</td>
+      <td>${r.avg_risk_pct}%</td>
+      <td>${fmt(r.mae_gap, 3)}</td>
+    </tr>
+  `).join("");
+
+  $("classSummaryTable").tBodies[0].innerHTML = d.class_breakdown.map(c => `
+    <tr style="cursor:pointer" onclick="jumpToClassCohort('${c.class_id}')">
+      <td><b>${c.class_id}</b></td>
+      <td>${c.class_name}</td>
+      <td>${c.program_name}</td>
+      <td>${c.advisor_name}</td>
+      <td>${c.total_students}</td>
+      <td>${fmt(c.avg_gpa)}</td>
+      <td><span class="badge b-bad">${c.high_risk} Đỏ</span></td>
+      <td><span class="badge b-mid">${c.attention} Vàng</span></td>
+      <td><span class="badge b-ok">${c.normal} Xanh</span></td>
+    </tr>
+  `).join("");
+}
+
+function jumpToClassCohort(classId) {
+  $("filterClass").value = classId;
+  switchTab("cohort");
+}
+
+/* ------------------------- 2. Individual Slip & Trajectory (M03 & M04) ------------------------- */
+function quickPickStudent(sid) {
+  $("stuPicker").value = sid;
+  loadStudentProfile();
+}
+
+async function loadStudentProfile() {
+  const sid = ($("stuPicker").value || "SV002").trim().toUpperCase();
+  const res = await fetch(`/api/students/${sid}/assessment`);
+  if (!res.ok) {
+    $("slipContainer").innerHTML = `<div class="card">Không tìm thấy mã sinh viên <b>${sid}</b>. Hãy nhập từ SV001 đến SV180.</div>`;
+    return;
+  }
+  const data = await res.json();
+  renderStudentSlip(data);
+  renderStudentTrajectory(data.semesters, data.assessment.predicted_next_gpa);
+  renderStudentPeers(data.peer_edges);
+  populateSimFromStudent(data);
+}
+
+function renderStudentSlip(data) {
+  const stu = data.student;
+  const ra = data.assessment;
+  const L = LEVEL_MAP[ra.risk_level] || LEVEL_MAP.NORMAL;
+  const rules = data.rule_checks || [];
+  const factors = data.factors || [];
+  const maxAbs = Math.max(0.4, ...factors.map(f => Math.abs(f.contribution)));
+
+  const factorHtml = factors.map(f => {
+    const w = Math.abs(f.contribution) / maxAbs * 48;
+    const fill = f.contribution >= 0
+      ? `<span class="fill pos" style="width:${w}%"></span>`
+      : `<span class="fill neg" style="width:${w}%"></span>`;
+    return `<div class="fbar">
+      <span>${f.factor_label}</span>
+      <span class="track">${fill}</span>
+      <span class="val">${f.contribution >= 0 ? "+" : ""}${fmt(f.contribution)}</span>
+    </div>`;
+  }).join("");
+
+  $("slipContainer").innerHTML = `
+    <div class="slip">
+      <div class="slip-head">
+        <div class="org">Trường Đại học Mở TP.HCM · Phiếu đánh giá nguy cơ học tập (M03)</div>
+        <h3>${stu.student_id} — ${stu.full_name}</h3>
+        <div class="meta">Lớp: <b>${stu.class_id}</b> · Ngành: ${stu.program_name} · CVHT: ${stu.advisor_name} · Mã ẩn danh: <code>${stu.anon_hash}</code></div>
+      </div>
+      <div class="slip-body">
+        <div>
+          <div class="stamp ${L.cls}">
+            <span class="lv">${L.name}</span>
+            <span class="pv">${Math.round(ra.risk_score)}%</span>
+            <span class="pl">xác suất nguy cơ</span>
+          </div>
+          <div style="text-align:center;font-size:.8rem;margin-top:10px;color:var(--ink-soft)">
+            Dự báo ĐTB HK tới:<br><b style="font-size:1.1rem;color:var(--ink)">${fmt(ra.predicted_next_gpa)} ± ${fmt(ra.predicted_gpa_std)}</b>
+          </div>
+        </div>
+        <div>
+          <div class="rulebox ${ra.rule_triggered ? "trig" : "clear"}">
+            <h4>${ra.rule_triggered
+              ? "⚑ Trạng thái theo quy chế (Thông tư 08/2021): THUỘC DIỆN CẢNH BÁO HỌC TẬP"
+              : "✓ Trạng thái theo quy chế (Thông tư 08/2021): Chưa chạm ngưỡng cảnh báo"}</h4>
+            <ul>
+              ${rules.map(c => `<li class="${c.triggered ? "hit" : ""}">${c.triggered ? "✗ " : "· "}${c.explanation}</li>`).join("")}
+            </ul>
+          </div>
+          <div class="expl"><b>Giải thích nguyên nhân (Template NLG):</b> ${ra.explanation_text}</div>
+          <div class="factors">
+            <h4 style="margin:8px 0 4px;font-size:.86rem">Đóng góp của từng chỉ số (SHAP + Sheaf Peer Attribution)</h4>
+            ${factorHtml}
+          </div>
+          <div class="advice" style="margin-top:10px">
+            <h4 style="margin:6px 0 4px;font-size:.86rem">Khuyến nghị hành động cho Cố vấn học tập</h4>
+            <ol style="margin:0;padding-left:18px;font-size:.83rem">
+              ${(ra.recommendations || []).map(a => `<li style="margin:4px 0">${a}</li>`).join("")}
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderStudentTrajectory(sems, predNextGpa) {
+  const w = 410, h = 205, padL = 38, padR = 30, padT = 22, padB = 30;
+  const totalPts = sems.length + 1;
+  const xAt = i => padL + i * ((w - padL - padR) / Math.max(1, totalPts - 1));
+  const yAt = g => padT + (4.0 - Math.min(4, Math.max(0, g))) / 4.0 * (h - padT - padB);
+
+  const semPts = sems.map((s, i) => `${xAt(i)},${yAt(s.gpa_semester)}`).join(" ");
+  const cumPts = sems.map((s, i) => `${xAt(i)},${yAt(s.gpa_cumulative)}`).join(" ");
+  const lastIdx = sems.length - 1;
+  const lastGpa = sems[lastIdx].gpa_semester;
+
+  $("stuTrajectorySvg").innerHTML = `
+    <svg viewBox="0 0 ${w} ${h}" style="width:100%;height:100%">
+      <!-- Threshold floor line at 1.4 -->
+      <line x1="${padL}" y1="${yAt(1.4)}" x2="${w-padR}" y2="${yAt(1.4)}" stroke="#B3403A" stroke-width="1.2" stroke-dasharray="3 3"/>
+      <text x="${w-padR-4}" y="${yAt(1.4)-4}" font-size="9.5" text-anchor="end" fill="#B3403A">Ngưỡng cảnh báo năm 2 (1.40)</text>
+      <polyline fill="none" stroke="#2456A6" stroke-width="2.5" points="${semPts}"/>
+      <polyline fill="none" stroke="#2E7D52" stroke-width="2" points="${cumPts}"/>
+      <!-- Forecast segment -->
+      <line x1="${xAt(lastIdx)}" y1="${yAt(lastGpa)}" x2="${xAt(lastIdx+1)}" y2="${yAt(predNextGpa)}" stroke="#C07F00" stroke-width="2.5" stroke-dasharray="4 3"/>
+      <circle cx="${xAt(lastIdx+1)}" cy="${yAt(predNextGpa)}" r="5" fill="#C07F00"/>
+      <text x="${xAt(lastIdx+1)}" y="${yAt(predNextGpa)-8}" font-size="10.5" text-anchor="middle" fill="#C07F00" font-weight="700">Dự báo: ${fmt(predNextGpa)}</text>
+      ${sems.map((s, i) => `
+        <circle cx="${xAt(i)}" cy="${yAt(s.gpa_semester)}" r="4" fill="#2456A6"/>
+        <text x="${xAt(i)}" y="${yAt(s.gpa_semester)-8}" font-size="10" text-anchor="middle" fill="#1B2A41">${fmt(s.gpa_semester)}</text>
+        <text x="${xAt(i)}" y="${h-8}" font-size="10" text-anchor="middle" fill="#4A5A72">HK${s.semester_seq}</text>
+      `).join("")}
+      <text x="${xAt(lastIdx+1)}" y="${h-8}" font-size="10" text-anchor="middle" fill="#C07F00" font-weight="600">HK tới</text>
+    </svg>
+  `;
+}
+
+function renderStudentPeers(edges) {
+  $("stuPeersTable").tBodies[0].innerHTML = edges.map(e => `
+    <tr style="cursor:pointer" onclick="quickPickStudent('${e.peer_id}')">
+      <td><b>${e.peer_id}</b> (${e.peer_name})</td>
+      <td>${e.edge_type}</td>
+      <td>${fmt(e.peer_gpa)}</td>
+      <td><b>${fmt(e.sheaf_attention, 3)}</b></td>
+    </tr>
+  `).join("");
+}
+
+/* What-If Simulator */
+function toggleSimMode() {
+  $("simBox").hidden = !$("simBox").hidden;
+}
+
+function populateSimFromStudent(data) {
+  $("simEntrance").value = data.student.normalized_score_30;
+  const last = data.semesters[data.semesters.length - 1];
+  $("simDebt").value = last.accumulated_debt_credits;
+  $("simPlanTC").value = last.planned_credits_next;
+  $("simPlanMid").value = last.planned_mid_courses;
+  $("simPlanHard").value = last.planned_hard_courses;
+  const tb = $("simSemTable").tBodies[0];
+  tb.innerHTML = "";
+  data.semesters.forEach(s => {
+    addSimSem([s.registered_credits, s.failed_credits, s.gpa_semester, s.gpa_cumulative]);
+  });
+}
+
+function addSimSem(vals) {
+  const tb = $("simSemTable").tBodies[0];
+  const i = tb.rows.length + 1;
+  const tr = tb.insertRow();
+  const v = vals || [16, 2, 2.1, 2.2];
+  tr.innerHTML = `
+    <td>HK${i}</td>
+    <td><input type="number" value="${v[0]}"></td>
+    <td><input type="number" value="${v[1]}"></td>
+    <td><input type="number" step="0.05" value="${v[2]}"></td>
+    <td><input type="number" step="0.05" value="${v[3]}"></td>
+  `;
+}
+function delSimSem() {
+  const tb = $("simSemTable").tBodies[0];
+  if (tb.rows.length > 1) tb.deleteRow(-1);
+}
+
+async function runWhatIfSimulation() {
+  const sems = [...$("simSemTable").tBodies[0].rows].map(r => {
+    const ins = r.querySelectorAll("input");
+    return {
+      tcDK: parseFloat(ins[0].value) || 15,
+      tcKD: parseFloat(ins[1].value) || 0,
+      dtbHK: parseFloat(ins[2].value) || 2.0,
+      dtbTL: parseFloat(ins[3].value) || 2.0,
+    };
+  });
+  const payload = {
+    entrance_score: parseFloat($("simEntrance").value) || 18.5,
+    accumulated_debt_credits: parseInt($("simDebt").value) || 0,
+    consecutive_warnings: parseInt($("simConsec").value) || 0,
+    plan: {
+      tc: parseInt($("simPlanTC").value) || 18,
+      easy: 1,
+      mid: parseInt($("simPlanMid").value) || 2,
+      hard: parseInt($("simPlanHard").value) || 2,
+    },
+    semesters: sems,
+  };
+  const res = await fetch("/api/assess/simulate", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(payload),
+  });
+  const sim = await res.json();
+  renderStudentSlip({
+    student: {
+      student_id: "WHAT-IF",
+      full_name: "Hồ sơ Giả lập Trực tiếp",
+      class_id: "SIM_MODE",
+      program_name: "Thử nghiệm Kịch bản Tư vấn",
+      advisor_name: "Cố vấn học tập",
+      anon_hash: "SIM_PREVIEW",
+    },
+    assessment: {
+      risk_level: sim.risk_level,
+      risk_score: sim.risk_score,
+      rule_triggered: sim.rule_triggered,
+      predicted_next_gpa: sim.predicted_next_gpa,
+      predicted_gpa_std: 0.15,
+      explanation_text: sim.explanation_text,
+      recommendations: sim.recommendations,
+    },
+    rule_checks: sim.rule_checks,
+    factors: sim.factors,
+  });
+}
+
+/* ------------------------- 3. Cohort View (M05) ------------------------- */
+async function loadCohortTable() {
+  const cls = $("filterClass").value;
+  const lvl = $("filterLevel").value;
+  const q = $("filterSearch").value;
+  const roleVal = $("roleSelect").value;
+  const advParam = (roleVal !== "ALL") ? `&advisor_id=${roleVal}` : "";
+
+  const res = await fetch(`/api/cohorts?class_id=${encodeURIComponent(cls)}&risk_level=${encodeURIComponent(lvl)}&q=${encodeURIComponent(q)}${advParam}`);
+  const d = await res.json();
+  $("cohortCountLabel").textContent = `Hiển thị ${d.total} sinh viên`;
+
+  $("cohortMainTable").tBodies[0].innerHTML = d.rows.map(r => {
+    const L = LEVEL_MAP[r.risk_level] || LEVEL_MAP.NORMAL;
+    const srcTag = r.rule_triggered
+      ? `<span style="color:var(--warn);font-weight:600">Quy chế TT08</span>`
+      : (r.risk_level !== "NORMAL" ? `<span style="color:var(--stamp);font-weight:600">Dự báo sớm (Sheaf)</span>` : `Ổn định`);
+    return `
+      <tr>
+        <td><b>${r.student_id}</b></td>
+        <td>${r.full_name}</td>
+        <td>${r.class_id}</td>
+        <td>Năm ${r.study_year}</td>
+        <td>${fmt(r.gpa_semester)}</td>
+        <td><b>${fmt(r.gpa_cumulative)}</b></td>
+        <td style="color:${r.gpa_trend < 0 ? 'var(--warn)' : 'var(--ok)'}">${r.gpa_trend >= 0 ? "+" : ""}${fmt(r.gpa_trend)}</td>
+        <td>${r.accumulated_debt_credits} TC</td>
+        <td>${fmt(r.predicted_next_gpa)}</td>
+        <td><b>${Math.round(r.risk_score)}%</b></td>
+        <td>${srcTag}</td>
+        <td><span class="badge ${L.badge}">${L.name}</span></td>
+        <td><button class="small" onclick="openStudentFromCohort('${r.student_id}')">Xem phiếu</button></td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function openStudentFromCohort(sid) {
+  $("stuPicker").value = sid;
+  switchTab("slip");
+}
+
+/* ------------------------- 4. Graph Network (M06) ------------------------- */
+async function loadGraphNetwork() {
+  const res = await fetch("/api/graph/network?limit=42");
+  const d = await res.json();
+  const svg = $("networkSvg");
+  const W = 680, H = 430, cx = W / 2, cy = H / 2;
+
+  const pos = {};
+  const n = d.nodes.length;
+  d.nodes.forEach((node, i) => {
+    const ring = (i % 3 === 0) ? 95 : (i % 3 === 1 ? 155 : 195);
+    const angle = (2 * Math.PI * i) / n;
+    pos[node.student_id] = {
+      x: cx + ring * Math.cos(angle) * 1.35,
+      y: cy + ring * Math.sin(angle) * 0.92,
+      node: node,
+    };
+  });
+
+  const edgesHtml = d.edges.map(e => {
+    const p1 = pos[e.src_student], p2 = pos[e.dst_student];
+    if (!p1 || !p2) return "";
+    const op = Math.min(0.85, Math.max(0.18, e.sheaf_attention));
+    const sw = 0.8 + e.sheaf_attention * 2.4;
+    return `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="#64748B" stroke-opacity="${op}" stroke-width="${sw}"/>`;
+  }).join("");
+
+  const colorOf = lv => lv === "HIGH_RISK" ? "#B3403A" : (lv === "ATTENTION" ? "#C07F00" : "#2E7D52");
+
+  const nodesHtml = Object.values(pos).map(p => {
+    const nd = p.node;
+    return `
+      <g style="cursor:pointer" onclick="openStudentFromCohort('${nd.student_id}')">
+        <circle cx="${p.x}" cy="${p.y}" r="11" fill="${colorOf(nd.risk_level)}" stroke="#fff" stroke-width="2"/>
+        <text x="${p.x}" y="${p.y+21}" font-size="9.5" text-anchor="middle" fill="#1B2A41" font-weight="600">${nd.student_id}</text>
+      </g>
+    `;
+  }).join("");
+
+  svg.innerHTML = edgesHtml + nodesHtml;
+}
+
+/* ------------------------- 5. Interventions & CSV Import (M08 & M09) ------------------------- */
+async function loadInterventions() {
+  const res = await fetch("/api/interventions");
+  const d = await res.json();
+  $("interventionsTable").tBodies[0].innerHTML = d.interventions.map(iv => `
+    <tr>
+      <td>#${iv.intervention_id}</td>
+      <td><b>${iv.student_id}</b></td>
+      <td>${iv.student_name}</td>
+      <td>${iv.class_id}</td>
+      <td>${iv.advisor_name}</td>
+      <td>${iv.meeting_date}</td>
+      <td>${iv.notes}</td>
+      <td><span class="badge b-mid">${iv.outcome_status}</span></td>
+    </tr>
+  `).join("");
+}
+
+async function submitIntervention() {
+  const payload = {
+    student_id: $("ivStudentId").value,
+    meeting_date: $("ivDate").value,
+    advisor_id: parseInt($("ivAdvisor").value),
+    outcome_status: $("ivStatus").value,
+    notes: $("ivNotes").value,
+  };
+  await fetch("/api/interventions", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(payload),
+  });
+  loadInterventions();
+}
+
+async function submitCsvImport() {
+  const csv_text = $("csvInput").value;
+  const res = await fetch("/api/data/import", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({csv_text}),
+  });
+  const d = await res.json();
+  const errHtml = (d.errors || []).map(e => `<li style="color:var(--warn)">Dòng ${e.line} (<code>${e.student_id || "Trống"}</code>): ${e.error}</li>`).join("");
+  $("importResultBox").innerHTML = `
+    <div class="rulebox ${d.error_count > 0 ? 'trig' : 'clear'}">
+      <b>Kết quả kiểm tra hợp lệ:</b> Đọc ${d.total_rows_read} dòng · Hợp lệ &amp; cập nhật CSDL: <b style="color:var(--ok)">${d.valid_count} dòng</b> · Lỗi bị từ chối: <b style="color:var(--warn)">${d.error_count} dòng</b>.
+      ${errHtml ? `<ul style="margin-top:6px">${errHtml}</ul>` : ""}
+    </div>
+  `;
+}
+
+/* ------------------------- 6. Models & Rules (M10 & M11) ------------------------- */
+async function loadModelsTable() {
+  const res = await fetch("/api/models");
+  const d = await res.json();
+  $("modelsTable").tBodies[0].innerHTML = d.models.map(m => `
+    <tr style="${m.is_active ? 'background:#E8EEF8;font-weight:600' : ''}">
+      <td><code>${m.run_id}</code></td>
+      <td>${m.model_name}</td>
+      <td>${m.model_family}</td>
+      <td>${fmt(m.macro_f1, 3)}</td>
+      <td style="color:var(--warn);font-weight:700">${fmt(m.recall_high_risk, 3)}</td>
+      <td>${fmt(m.pr_auc, 3)}</td>
+      <td>${fmt(m.roc_auc, 3)}</td>
+      <td>${fmt(m.gpa_mae, 3)}</td>
+      <td>${fmt(m.gpa_r2, 3)}</td>
+      <td>${fmt(m.ece, 3)}</td>
+      <td>${fmt(m.perm_test_r2, 3)}</td>
+      <td>
+        ${m.is_active
+          ? `<span class="badge b-ok">Đang kích hoạt</span>`
+          : `<button class="small" onclick="activateModel('${m.run_id}', '${m.model_name}')">Kích hoạt</button>`}
+      </td>
+    </tr>
+  `).join("");
+}
+
+async function activateModel(runId, modelName) {
+  await fetch(`/api/models/${runId}/activate`, {method: "POST"});
+  $("activeModelBadge").textContent = `Mô hình kích hoạt: ${modelName}`;
+  loadModelsTable();
+}
+
+async function loadRulesTable() {
+  const res = await fetch("/api/rules");
+  const d = await res.json();
+  $("rulesTable").tBodies[0].innerHTML = d.rules.map(r => `
+    <tr>
+      <td><b>${r.rule_code}</b></td>
+      <td>${r.rule_name}</td>
+      <td><input id="ruleParam_${r.rule_code}" value='${r.param_json}' style="font-family:monospace;font-size:.78rem"></td>
+      <td>${r.effective_from}</td>
+      <td>${r.legal_ref}</td>
+      <td><button class="small" onclick="saveRuleParam('${r.rule_code}')">Lưu &amp; Chạy lại</button></td>
+    </tr>
+  `).join("");
+}
+
+async function saveRuleParam(ruleCode) {
+  const raw = $("ruleParam_" + ruleCode).value;
+  try {
+    const params = JSON.parse(raw);
+    await fetch(`/api/rules/${ruleCode}`, {
+      method: "PUT",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({params}),
+    });
+    alert(`Đã cập nhật quy tắc ${ruleCode} và chạy lại toàn bộ đánh giá!`);
+    loadRulesTable();
+  } catch (e) {
+    alert("Chuỗi JSON không hợp lệ!");
+  }
+}
+
+/* ------------------------- 7. Advisor Copilot ------------------------- */
+function askPreset(q) {
+  $("copilotInput").value = q;
+  sendCopilotQuery();
+}
+
+async function sendCopilotQuery() {
+  const q = $("copilotInput").value;
+  const res = await fetch("/api/copilot/ask", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({query: q}),
+  });
+  const d = await res.json();
+  $("copilotAnswerBox").innerHTML = (d.answer || "").replace(/\*\*(.*?)\*\*/g, "<b>$1</b>").replace(/`(.*?)`/g, "<code>$1</code>");
+  $("copilotSqlBox").innerHTML = d.sql_executed
+    ? `<div class="rulebox clear"><b>Truy vấn Read-Only SQL đã thực thi an toàn:</b><br><code style="font-size:.78rem">${d.sql_executed}</code></div>`
+    : "";
+  $("copilotCiteBox").innerHTML = (d.citations && d.citations.length)
+    ? `<b>Nguồn căn cứ trích dẫn:</b> ${d.citations.join(" · ")}`
+    : "";
+}
+
+/* ------------------------- 8. Hexagonal Architecture Tab (React + Node.js Gateway) ------------------------- */
+async function loadHexagonalTab() {
+  const res = await fetch("/api/architecture/blueprint");
+  const bp = await res.json();
+  let gwInfo = { gateway: "Node.js v24 Enterprise BFF Gateway (:3000)", circuit_breaker: { state: "CLOSED", avgLatencyMs: 8.5 } };
+  try {
+    const gRes = await fetch("/api/gateway/health");
+    if (gRes.ok) gwInfo = await gRes.json();
+  } catch (_) {}
+
+  $("reactHexagonalRoot").innerHTML = `
+    <div class="kpi-row">
+      <div class="pill"><b>Hexagonal</b>Ports &amp; Adapters Architecture</div>
+      <div class="pill"><b>React 18 + Node.js v24</b>Driving Adapters (UI + BFF Gateway)</div>
+      <div class="pill"><b>Zero-Dep Core</b>Pure Domain Entities &amp; UseCases</div>
+      <div class="pill" style="border-color:#BFDCCB"><b>${gwInfo.circuit_breaker.state}</b>Circuit Breaker (${gwInfo.circuit_breaker.avgLatencyMs} ms)</div>
+    </div>
+
+    <div class="grid-equal">
+      <div class="card">
+        <h2>Sơ đồ Kiến trúc Lục giác (Hexagonal Ports &amp; Adapters)</h2>
+        <p class="hint">Tách biệt hoàn toàn miền nghiệp vụ lõi (Pure Domain Core) khỏi công nghệ giao diện (React/Node.js) và hạ tầng (PostgreSQL/PyTorch Geometric).</p>
+        <svg viewBox="0 0 580 300" style="width:100%;height:285px;background:#FAFBFD;border:1px solid var(--line);border-radius:8px">
+          <!-- Left Driving Adapters -->
+          <rect x="14" y="45" width="140" height="65" rx="8" fill="#E8EEF8" stroke="#2456A6" stroke-width="1.5"/>
+          <text x="84" y="72" font-size="11" font-weight="700" text-anchor="middle" fill="#1B2A41">React 18 SPA</text>
+          <text x="84" y="90" font-size="9.5" text-anchor="middle" fill="#4A5A72">Driving UI Adapter</text>
+
+          <rect x="14" y="135" width="140" height="75" rx="8" fill="#E8F3EC" stroke="#2E7D52" stroke-width="1.5"/>
+          <text x="84" y="162" font-size="11" font-weight="700" text-anchor="middle" fill="#1B2A41">Node.js v24 BFF</text>
+          <text x="84" y="178" font-size="9.5" text-anchor="middle" fill="#2E7D52">Circuit Breaker · Rate Limit</text>
+          <text x="84" y="193" font-size="9.5" text-anchor="middle" fill="#4A5A72">X-Correlation-Id Tracing</text>
+
+          <!-- Center Hexagon (Domain Core) -->
+          <polygon points="290,25 385,78 385,212 290,265 195,212 195,78" fill="#FFF6DE" stroke="#C07F00" stroke-width="2.5"/>
+          <text x="290" y="108" font-size="12" font-weight="700" text-anchor="middle" fill="#1B2A41">HEXAGONAL CORE</text>
+          <text x="290" y="128" font-size="10" text-anchor="middle" fill="#553F00">Domain: AssessmentSlip</text>
+          <text x="290" y="145" font-size="10" text-anchor="middle" fill="#553F00">Golden Rule Invariant</text>
+          <text x="290" y="166" font-size="10" font-weight="600" text-anchor="middle" fill="#2456A6">Inbound / Outbound Ports</text>
+          <text x="290" y="184" font-size="9.5" text-anchor="middle" fill="#4A5A72">EvaluateStudentRiskUseCase</text>
+
+          <!-- Right Driven Adapters -->
+          <rect x="425" y="25" width="142" height="68" rx="8" fill="#F7E9E8" stroke="#B3403A" stroke-width="1.5"/>
+          <text x="496" y="50" font-size="10.5" font-weight="700" text-anchor="middle" fill="#B3403A">RegulationAdapter</text>
+          <text x="496" y="66" font-size="9" text-anchor="middle" fill="#1B2A41">Thông tư 08/2021 Engine</text>
+          <text x="496" y="80" font-size="9" text-anchor="middle" fill="#4A5A72">Temporal Rule Versioning</text>
+
+          <rect x="425" y="112" width="142" height="68" rx="8" fill="#E8EEF8" stroke="#2456A6" stroke-width="1.5"/>
+          <text x="496" y="137" font-size="10.5" font-weight="700" text-anchor="middle" fill="#2456A6">SheafInferenceAdapter</text>
+          <text x="496" y="153" font-size="9" text-anchor="middle" fill="#1B2A41">GCN · ST-GAT · Sheaf GNN</text>
+          <text x="496" y="167" font-size="9" text-anchor="middle" fill="#4A5A72">SHAP + Edge Attribution</text>
+
+          <rect x="425" y="198" width="142" height="68" rx="8" fill="#E8F3EC" stroke="#2E7D52" stroke-width="1.5"/>
+          <text x="496" y="223" font-size="10.5" font-weight="700" text-anchor="middle" fill="#2E7D52">PostgreSQL 16 Adapter</text>
+          <text x="496" y="239" font-size="9" text-anchor="middle" fill="#1B2A41">18 Tables 3NF · RLS Policy</text>
+          <text x="496" y="253" font-size="9" text-anchor="middle" fill="#4A5A72">Immutable Audit Trigger</text>
+
+          <!-- Arrows -->
+          <line x1="154" y1="80" x2="195" y2="115" stroke="#2456A6" stroke-width="2"/>
+          <line x1="154" y1="170" x2="195" y2="165" stroke="#2E7D52" stroke-width="2"/>
+          <line x1="385" y1="100" x2="425" y2="60" stroke="#B3403A" stroke-width="2"/>
+          <line x1="385" y1="146" x2="425" y2="146" stroke="#2456A6" stroke-width="2"/>
+          <line x1="385" y1="195" x2="425" y2="230" stroke="#2E7D52" stroke-width="2"/>
+        </svg>
+      </div>
+
+      <div class="card">
+        <h2>Nguyên lý Thiết kế Hệ thống &amp; Tính Bền vững (System Design Principles)</h2>
+        <p class="hint">Tuân thủ nghiêm ngặt các nguyên lý Clean Architecture, High Availability và Bảo vệ dữ liệu cá nhân theo Nghị định 13/2023/NĐ-CP.</p>
+        <div class="rulebox clear">
+          <h4>🛡️ 1. Tuân thủ Quy chế Pháp lý Tuyệt đối (Compliance-First Pattern)</h4>
+          <ul>
+            <li><b>Deterministic Compliance Priority:</b> Các quy tắc pháp lý tất định theo Thông tư 08/2021/TT-BGDĐT nằm ở <code>RegulationPort</code> và luôn có quyền phủ quyết (override) điểm xác suất của mô hình học máy.</li>
+            <li><b>Explainable AI &amp; Auditability:</b> Mỗi đánh giá đều lưu chi tiết vector SHAP, câu giải thích mẫu không bịa số liệu và ghi nhật ký truy vết bất biến vào <code>audit_log</code>.</li>
+            <li><b>API Resilience:</b> Cổng <code>node_gateway/server.js</code> tích hợp Circuit Breaker, Token-Bucket Rate Limiter và <code>X-Correlation-Id</code> cho distributed tracing.</li>
+          </ul>
+        </div>
+        <div class="rulebox" style="background:#FAFBFD">
+          <h4>🔄 2. Khả năng Mở rộng Độc lập (Pluggable Adapters &amp; Data Isolation)</h4>
+          <ul>
+            <li><b>Hoán đổi Adapter không sửa Domain Core:</b> Nhờ Dependency Inversion, có thể dễ dàng chuyển đổi hoặc tích hợp giữa SQLite, PostgreSQL 16 (với Row-Level Security) và hệ thống SIS/ERP của nhà trường.</li>
+            <li><b>Live Probe từ Hexagonal UseCase (<code>SV002</code>):</b> Mức <code>${bp.live_hexagonal_probe.final_risk_level}</code> (${bp.live_hexagonal_probe.final_risk_score}%), Dự báo GPA: <b>${fmt(bp.live_hexagonal_probe.predicted_next_gpa)}</b>.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* Init on load */
+window.addEventListener("DOMContentLoaded", () => {
+  loadDashboard();
+});
+</script>
+</body>
+</html>

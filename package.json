@@ -1,0 +1,21 @@
+{
+  "name": "edualert-hexagonal-platform",
+  "version": "2.0.0",
+  "description": "EduAlert — Multi-level Early Academic Alert System (React 18 + Node.js BFF Gateway + Python Hexagonal Core + Sheaf Attention GNN + PostgreSQL 16 3NF)",
+  "main": "node_gateway/server.js",
+  "scripts": {
+    "gateway": "node node_gateway/server.js",
+    "test": "python tests/test_edualert.py"
+  },
+  "keywords": [
+    "Hexagonal-Architecture",
+    "Ports-and-Adapters",
+    "React",
+    "Node.js",
+    "Graph-Neural-Networks",
+    "Sheaf-Attention",
+    "PostgreSQL-RLS"
+  ],
+  "author": "Huynh Le Thanh Hai — HCMC Open University"
+}
+
