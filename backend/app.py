@@ -10,6 +10,7 @@ import csv
 import sys
 import json
 import hashlib
+from datetime import datetime
 from pathlib import Path
 from flask import Flask, request, jsonify, send_file, send_from_directory, Response
 
@@ -101,6 +102,54 @@ def api_login():
             "advisor_id": advisor["advisor_id"] if advisor else 1,
         }
     )
+
+
+# 1b. GET /api/auth/roles (M01 RBAC & RLS Role Matrix)
+@app.route("/api/auth/roles", methods=["GET"])
+def api_auth_roles():
+    conn = get_connection()
+    users = conn.execute(
+        """
+        SELECT u.user_id, u.username, u.role, u.email,
+               a.advisor_id, a.full_name as advisor_name,
+               GROUP_CONCAT(c.class_id) as assigned_classes
+        FROM users u
+        LEFT JOIN advisors a ON a.user_id = u.user_id
+        LEFT JOIN classes c ON c.advisor_id = a.advisor_id
+        GROUP BY u.user_id
+        ORDER BY u.user_id
+        """
+    ).fetchall()
+    conn.close()
+
+    ROLE_LABELS = {
+        "ADMIN": "Quản trị Hệ thống (System Admin)",
+        "TRAINING_DEPT": "Phòng Quản lý Đào tạo (Registrar)",
+        "FACULTY_BOARD": "Ban Chủ nhiệm Khoa CNTT (Faculty Dean)",
+        "ADVISOR": "Cố vấn Học tập (Academic Advisor)",
+    }
+
+    role_list = []
+    for u in users:
+        classes = [c.strip() for c in u["assigned_classes"].split(",")] if u["assigned_classes"] else []
+        role_key = u["role"]
+        role_list.append(
+            {
+                "user_id": u["user_id"],
+                "username": u["username"],
+                "role": role_key,
+                "role_label": ROLE_LABELS.get(role_key, role_key),
+                "display_name": u["advisor_name"] or u["username"],
+                "email": u["email"],
+                "assigned_classes": classes,
+                "can_edit_rules": role_key in ("ADMIN", "TRAINING_DEPT"),
+                "can_run_pipeline": role_key in ("ADMIN", "TRAINING_DEPT"),
+                "can_manage_models": role_key in ("ADMIN", "FACULTY_BOARD"),
+                "can_intervene": role_key in ("ADMIN", "ADVISOR", "TRAINING_DEPT"),
+                "rls_enforced": role_key == "ADVISOR",
+            }
+        )
+    return jsonify({"roles": role_list})
 
 
 # 2. GET /api/stats/overview (M02 Dashboard)
@@ -240,11 +289,26 @@ def api_cohorts():
 
     sql += " ORDER BY ra.risk_score DESC, sr.gpa_cumulative ASC"
     rows = [dict(r) for r in conn.execute(sql, params).fetchall()]
+
+    # Fetch violated rules per student for 2025_HK2
+    vr_rows = conn.execute(
+        """
+        SELECT ra.student_id, rr.rule_code
+        FROM rule_results rr
+        JOIN risk_assessments ra ON ra.assessment_id = rr.assessment_id
+        WHERE rr.triggered = 1 AND ra.semester_id = '2025_HK2'
+        """
+    ).fetchall()
     conn.close()
+
+    v_rules_by_student = {}
+    for vr in vr_rows:
+        v_rules_by_student.setdefault(vr["student_id"], []).append(vr["rule_code"])
 
     for r in rows:
         prev_g = r["prev_gpa_semester"] if r["prev_gpa_semester"] is not None else r["gpa_semester"]
         r["gpa_trend"] = round(float(r["gpa_semester"]) - float(prev_g), 2)
+        r["violated_rules"] = v_rules_by_student.get(r["student_id"], [])
 
     if search_q:
         rows = [
@@ -501,22 +565,28 @@ def api_assess_simulate():
 # 6. GET /api/graph/network (M06 Interactive Student Graph Visualization)
 @app.route("/api/graph/network", methods=["GET"])
 def api_graph_network():
-    limit_nodes = int(request.args.get("limit", 45))
+    limit_nodes = int(request.args.get("limit", 180))
+    class_id = request.args.get("class_id", "").strip()
     conn = get_connection()
     cur = conn.cursor()
-    nodes_rows = cur.execute(
-        """
+
+    query = """
         SELECT s.student_id, s.full_name, s.class_id, sr.gpa_cumulative,
-               ra.risk_level, ra.risk_score, ra.rule_triggered
+               sr.gpa_semester, sr.accumulated_debt_credits,
+               ra.risk_level, ra.risk_score, ra.risk_probability, ra.rule_triggered,
+               ra.predicted_next_gpa
         FROM students s
         JOIN semester_results sr ON sr.student_id = s.student_id AND sr.semester_id = '2025_HK2'
         JOIN risk_assessments ra ON ra.student_id = s.student_id AND ra.semester_id = '2025_HK2'
-        ORDER BY s.student_id
-        LIMIT ?
-        """,
-        (limit_nodes,),
-    ).fetchall()
+    """
+    params = []
+    if class_id:
+        query += " WHERE s.class_id = ?"
+        params.append(class_id)
+    query += " ORDER BY s.student_id LIMIT ?"
+    params.append(limit_nodes)
 
+    nodes_rows = cur.execute(query, params).fetchall()
     node_ids = {r["student_id"] for r in nodes_rows}
     edges_rows = cur.execute(
         """
@@ -538,17 +608,75 @@ def api_graph_network():
                 seen_pairs.add(pair)
                 filtered_edges.append(dict(e))
 
-    return jsonify({"nodes": [dict(r) for r in nodes_rows], "edges": filtered_edges[:120]})
+    return jsonify({"nodes": [dict(r) for r in nodes_rows], "edges": filtered_edges})
 
 
-# 7. GET & PUT /api/rules (M07 & M10 Rule Configuration)
+# 7. GET, PUT, & RE-EVALUATE /api/rules (M07 & M10 Rule Configuration)
 @app.route("/api/rules", methods=["GET"])
 def api_get_rules():
     conn = get_connection()
     rows = [dict(r) for r in conn.execute("SELECT * FROM rule_config ORDER BY rule_id").fetchall()]
+
+    # Query current violations for each rule in 2025_HK2
+    v_rows = conn.execute(
+        """
+        SELECT rr.rule_code, COUNT(DISTINCT ra.student_id) as violated_count,
+               GROUP_CONCAT(DISTINCT ra.student_id) as student_ids
+        FROM rule_results rr
+        JOIN risk_assessments ra ON ra.assessment_id = rr.assessment_id
+        WHERE rr.triggered = 1 AND ra.semester_id = '2025_HK2'
+        GROUP BY rr.rule_code
+        """
+    ).fetchall()
     conn.close()
+
+    v_map = {
+        r["rule_code"]: {
+            "count": r["violated_count"],
+            "students": [s.strip() for s in r["student_ids"].split(",")] if r["student_ids"] else [],
+        }
+        for r in v_rows
+    }
+
+    RULE_META_EXTRA = {
+        "R01_SEM_FAIL_RATIO": {
+            "unit": "% tín chỉ đăng ký",
+            "format_threshold": lambda p: f"> {int(float(p.get('max_fail_ratio', 0.5)) * 100)}% khối lượng ĐK",
+            "tooltip": "Căn cứ Điểm a Khoản 1 Điều 11 Thông tư 08/2021/TT-BGDĐT: Sinh viên bị cảnh báo kết quả học tập cuối mỗi học kỳ chính nếu tổng số tín chỉ không đạt trong học kỳ vượt quá 50% khối lượng đã đăng ký học trong học kỳ đó.",
+        },
+        "R02_ACCUM_DEBT_CREDITS": {
+            "unit": "Tín chỉ nợ đọng",
+            "format_threshold": lambda p: f"> {int(p.get('max_debt_credits', 24))} tín chỉ nợ đọng",
+            "tooltip": "Căn cứ Điểm b Khoản 1 Điều 11 Thông tư 08/2021/TT-BGDĐT: Sinh viên bị cảnh báo kết quả học tập nếu tổng số tín chỉ nợ đọng từ đầu khóa học (các học phần F, W chưa học lại) vượt quá 24 tín chỉ.",
+        },
+        "R03_SEM_GPA_FLOOR": {
+            "unit": "Thang điểm 4.0",
+            "format_threshold": lambda p: f"< {float(p.get('first_sem_floor', 0.8)):.2f} (HK đầu) / < {float(p.get('later_sem_floor', 1.0)):.2f} (HK sau)",
+            "tooltip": "Căn cứ Điểm c Khoản 1 Điều 11 Thông tư 08/2021/TT-BGDĐT: Sinh viên bị cảnh báo nếu điểm trung bình học kỳ đạt dưới 0.80 đối với học kỳ đầu của khóa học, hoặc dưới 1.00 đối với các học kỳ tiếp theo.",
+        },
+        "R04_CUM_GPA_BY_YEAR": {
+            "unit": "Thang điểm 4.0",
+            "format_threshold": lambda p: f"Năm 1: <{float(p.get('year_1', 1.2)):.2f} | Năm 2: <{float(p.get('year_2', 1.4)):.2f} | Năm 3: <{float(p.get('year_3', 1.6)):.2f} | Năm 4+: <{float(p.get('year_4_plus', 1.8)):.2f}",
+            "tooltip": "Căn cứ Điểm d Khoản 1 Điều 11 Thông tư 08/2021/TT-BGDĐT: Sinh viên bị cảnh báo nếu điểm trung bình tích lũy đạt dưới ngưỡng lũy tiến theo năm đào tạo (Năm 1: < 1.20, Năm 2: < 1.40, Năm 3: < 1.60, Năm 4 trở đi: < 1.80).",
+        },
+        "R05_CONSECUTIVE_WARNINGS": {
+            "unit": "Lần cảnh báo học tập",
+            "format_threshold": lambda p: f"≥ {int(p.get('max_consecutive_warnings', 2))} lần liên tiếp hoặc ≥ {int(p.get('max_total_warnings', 3))} lần tổng cộng",
+            "tooltip": "Căn cứ Khoản 2 Điều 11 Thông tư 08/2021/TT-BGDĐT & Quy chế Đào tạo ĐH Mở TP.HCM: Sinh viên bị buộc thôi học nếu bị cảnh báo kết quả học tập 2 lần liên tiếp, hoặc tổng số lần bị cảnh báo vượt quá 3 lần trong toàn khóa.",
+        },
+    }
+
     for r in rows:
-        r["params"] = json.loads(r["param_json"])
+        params = json.loads(r["param_json"])
+        r["params"] = params
+        extra = RULE_META_EXTRA.get(r["rule_code"], {})
+        r["unit"] = extra.get("unit", "Tiêu chí")
+        r["formatted_threshold"] = extra["format_threshold"](params) if "format_threshold" in extra else str(params)
+        r["tooltip"] = extra.get("tooltip", r["rule_name"])
+        v_info = v_map.get(r["rule_code"], {"count": 0, "students": []})
+        r["violation_count"] = v_info["count"]
+        r["violated_students"] = v_info["students"]
+
     return jsonify({"rules": rows})
 
 
@@ -571,6 +699,51 @@ def api_update_rule(rule_code: str):
     # Re-run pipeline so updated regulations take effect immediately
     summary = run_full_pipeline()
     return jsonify({"status": "updated", "rule_code": rule_code, "pipeline_summary": summary})
+
+
+@app.route("/api/rules/re-evaluate", methods=["POST"])
+def api_reevaluate_rules():
+    summary = run_full_pipeline()
+    conn = get_connection()
+    log_audit(conn, 1, "RE_EVALUATE_ALL_RULES", "ALL", summary)
+
+    v_rows = conn.execute(
+        """
+        SELECT rr.rule_code, COUNT(DISTINCT ra.student_id) as violated_count,
+               GROUP_CONCAT(DISTINCT ra.student_id) as student_ids
+        FROM rule_results rr
+        JOIN risk_assessments ra ON ra.assessment_id = rr.assessment_id
+        WHERE rr.triggered = 1 AND ra.semester_id = '2025_HK2'
+        GROUP BY rr.rule_code
+        """
+    ).fetchall()
+
+    total_triggered = conn.execute(
+        """
+        SELECT COUNT(*) FROM risk_assessments
+        WHERE semester_id = '2025_HK2' AND rule_triggered = 1
+        """
+    ).fetchone()[0]
+    conn.close()
+
+    v_map = {
+        r["rule_code"]: {
+            "count": r["violated_count"],
+            "students": [s.strip() for s in r["student_ids"].split(",")] if r["student_ids"] else [],
+        }
+        for r in v_rows
+    }
+
+    return jsonify(
+        {
+            "status": "success",
+            "message": "Đã hoàn thành đối soát toàn trường cho 180 sinh viên theo Thông tư 08/2021/TT-BGDĐT",
+            "total_rule_triggered": total_triggered,
+            "pipeline_summary": summary,
+            "violations": v_map,
+            "evaluated_at": datetime.now().isoformat(),
+        }
+    )
 
 
 # 8. GET & POST /api/interventions (M08 Advisor Interventions)
@@ -612,6 +785,80 @@ def api_interventions():
     ]
     conn.close()
     return jsonify({"interventions": rows})
+
+
+@app.route("/api/interventions/<int:intervention_id>", methods=["PUT", "DELETE"])
+def api_intervention_detail(intervention_id: int):
+    conn = get_connection()
+    if request.method == "DELETE":
+        conn.execute("DELETE FROM interventions WHERE intervention_id = ?", (intervention_id,))
+        log_audit(conn, 1, "DELETE_INTERVENTION", str(intervention_id), {})
+        conn.commit()
+        conn.close()
+        return jsonify({"status": "deleted", "intervention_id": intervention_id})
+
+    # PUT
+    body = request.get_json(force=True, silent=True) or {}
+    notes = (body.get("notes") or "").strip()
+    outcome = (body.get("outcome_status") or body.get("outcome") or "SCHEDULED").strip()
+    m_date = (body.get("meeting_date") or body.get("intervention_date") or "").strip()
+
+    if not notes:
+        conn.close()
+        return jsonify({"error": "Ghi chú can thiệp không được để trống"}), 400
+
+    conn.execute(
+        """
+        UPDATE interventions
+        SET notes = ?, outcome_status = ?, meeting_date = COALESCE(NULLIF(?, ''), meeting_date)
+        WHERE intervention_id = ?
+        """,
+        (notes, outcome, m_date, intervention_id),
+    )
+    log_audit(conn, 1, "UPDATE_INTERVENTION", str(intervention_id), {"outcome": outcome, "notes": notes})
+    conn.commit()
+    conn.close()
+    return jsonify({"status": "updated", "intervention_id": intervention_id})
+
+
+# Endpoint CRUD: Cập nhật thông tin điểm học kỳ sinh viên và tự động tái tính toán rủi ro tức thời
+@app.route("/api/students/<student_id>", methods=["PUT"])
+def api_update_student_grades(student_id: str):
+    sid = student_id.strip().upper()
+    body = request.get_json(force=True, silent=True) or {}
+    try:
+        gpa_sem = float(body.get("gpa_semester", body.get("gpa_term", 2.0)))
+        gpa_cum = float(body.get("gpa_cumulative", body.get("gpa_cum", gpa_sem)))
+        failed_cr = int(body.get("failed_credits", 0))
+        debt_cr = int(body.get("accumulated_debt_credits", body.get("failed_credits_cumulative", failed_cr)))
+    except (ValueError, TypeError):
+        return jsonify({"error": "Giá trị số liệu GPA hoặc tín chỉ không hợp lệ"}), 400
+
+    conn = get_connection()
+    res = conn.execute(
+        """
+        UPDATE semester_results
+        SET gpa_semester = ?, gpa_cumulative = ?, failed_credits = ?, accumulated_debt_credits = ?
+        WHERE student_id = ? AND semester_id = '2025_HK2'
+        """,
+        (gpa_sem, gpa_cum, failed_cr, debt_cr, sid),
+    )
+    if res.rowcount == 0:
+        conn.close()
+        return jsonify({"error": f"Không tìm thấy học kỳ của sinh viên {sid}"}), 404
+
+    log_audit(conn, 1, "UPDATE_STUDENT_GRADES", sid, {
+        "gpa_semester": gpa_sem,
+        "gpa_cumulative": gpa_cum,
+        "failed_credits": failed_cr,
+        "accumulated_debt_credits": debt_cr,
+    })
+    conn.commit()
+    conn.close()
+
+    # Re-evaluate all student assessments & regulations immediately
+    summary = run_full_pipeline()
+    return jsonify({"status": "updated", "student_id": sid, "pipeline_summary": summary})
 
 
 # 9. POST /api/data/import (M09 Row-level Validated CSV Import)

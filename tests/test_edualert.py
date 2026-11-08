@@ -120,6 +120,36 @@ class TestEduAlertSystem(unittest.TestCase):
         self.assertEqual(d["live_hexagonal_probe"]["student_id"], "SV002")
         self.assertIn(d["live_hexagonal_probe"]["final_risk_level"], ("ATTENTION", "HIGH_RISK"))
 
+    def test_rules_r01_to_r05_and_reevaluate(self):
+        r_rules = self.client.get("/api/rules")
+        self.assertEqual(r_rules.status_code, 200)
+        rules = r_rules.get_json()["rules"]
+        rule_codes = [r["rule_code"] for r in rules]
+        for expected in ["R01_SEM_FAIL_RATIO", "R02_ACCUM_DEBT_CREDITS", "R03_SEM_GPA_FLOOR", "R04_CUM_GPA_BY_YEAR", "R05_CONSECUTIVE_WARNINGS"]:
+            self.assertIn(expected, rule_codes)
+
+        r_eval = self.client.post("/api/rules/re-evaluate")
+        self.assertEqual(r_eval.status_code, 200)
+        data = r_eval.get_json()
+        self.assertEqual(data["status"], "success")
+        self.assertGreater(data["total_rule_triggered"], 0)
+        self.assertIn("R05_CONSECUTIVE_WARNINGS", data["violations"])
+
+    def test_rbac_and_roles_api(self):
+        r_roles = self.client.get("/api/auth/roles")
+        self.assertEqual(r_roles.status_code, 200)
+        roles = r_roles.get_json()["roles"]
+        self.assertGreaterEqual(len(roles), 4)
+        usernames = [u["username"] for u in roles]
+        self.assertIn("admin", usernames)
+        self.assertIn("cvht_lan", usernames)
+        self.assertIn("daotao", usernames)
+
+        # Check RLS constraint: Advisor only has assigned classes
+        cvht_lan = next(u for u in roles if u["username"] == "cvht_lan")
+        self.assertTrue(cvht_lan["rls_enforced"])
+        self.assertIn("DH23CS01", cvht_lan["assigned_classes"])
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

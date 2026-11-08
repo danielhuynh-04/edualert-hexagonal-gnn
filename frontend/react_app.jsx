@@ -8,7 +8,7 @@
  *  - Decree 13/2023/NĐ-CP (Personal Data Protection & Privacy)
  *  - pbakaus/impeccable Design Philosophy (Zero AI Slop, Charter Serif,
  *    Tabular Figures, Ink & Archival Paper, Symmetric Diverging SHAP Bars,
- *    Registrar Seal with Double Stamped Border, Error Boundary Protection)
+ *    Registrar Seal with Double Stamped Border, Advanced Filters, Full CRUD)
  * 
  * Author: Huynh Le Thanh Hai — HCMC Open University
  * ============================================================================
@@ -17,12 +17,12 @@
 const { useState, useEffect, useMemo, useCallback, useRef, Component } = React;
 
 // ============================================================================
-// 0. REACT ERROR BOUNDARY (CHỐNG TRẮNG MÀN HÌNH - CRASH-SAFE GUARD)
+// 0. REACT ERROR BOUNDARY (CRASH-SAFE GUARD)
 // ============================================================================
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
+    this.state = { hasError: false, error: null };
   }
 
   static getDerivedStateFromError(error) {
@@ -31,7 +31,6 @@ class ErrorBoundary extends Component {
 
   componentDidCatch(error, errorInfo) {
     console.error("EduAlert ErrorBoundary caught:", error, errorInfo);
-    this.setState({ errorInfo });
   }
 
   render() {
@@ -57,7 +56,7 @@ class ErrorBoundary extends Component {
             type="button"
             className="primary"
             onClick={() => {
-              this.setState({ hasError: false, error: null, errorInfo: null });
+              this.setState({ hasError: false, error: null });
               if (this.props.onReset) this.props.onReset();
             }}
           >
@@ -71,7 +70,7 @@ class ErrorBoundary extends Component {
 }
 
 // ============================================================================
-// 1. DATA ADAPTER & DEFENSIVE MAPPERS (CHUẨN HÓA DỮ LIỆU ĐA DẠNG)
+// 1. DATA ADAPTER & DEFENSIVE MAPPERS
 // ============================================================================
 const LEVEL_CONFIG = {
   NORMAL: { label: "Bình thường", stampClass: "lv-ok", badgeClass: "b-ok", color: "#166534", bg: "#F0FDF4" },
@@ -88,7 +87,6 @@ function normalizeAssessment(raw) {
   const a = raw.assessment || raw;
   const s = raw.student || {};
 
-  // Extract recommendations string
   let hint = "";
   if (Array.isArray(a.recommendations)) {
     hint = a.recommendations.map((r) => r.replace(/<[^>]*>?/gm, "")).join(" ");
@@ -98,7 +96,6 @@ function normalizeAssessment(raw) {
     hint = a.advisor_action_hint;
   }
 
-  // Extract rule results
   const rawRules = raw.rule_checks || a.rule_results || [];
   const rule_results = rawRules.map((r) => ({
     rule_code: r.rule_code || "RULE",
@@ -107,7 +104,6 @@ function normalizeAssessment(raw) {
     detail: r.actual_value || r.detail || "",
   }));
 
-  // Extract SHAP factors
   const rawFactors = raw.factors || a.shap_contributions || [];
   const shap_contributions = rawFactors.map((f) => {
     let val = 0;
@@ -123,7 +119,6 @@ function normalizeAssessment(raw) {
     };
   });
 
-  // Extract sheaf peers
   const rawPeers = raw.peers || raw.peer_edges || a.neighbors_sheaf || [];
   const neighbors_sheaf = rawPeers.map((p) => ({
     neighbor_id: p.peer_id || p.neighbor_id || "SV---",
@@ -133,7 +128,6 @@ function normalizeAssessment(raw) {
     alpha_weight: p.sheaf_attention != null ? Number(p.sheaf_attention) : (p.alpha_weight != null ? Number(p.alpha_weight) : 0.2),
   }));
 
-  // Extract historical semesters
   const rawSems = raw.semesters || a.history || [];
   const history = rawSems.map((sem, idx) => ({
     semester: String(sem.semester_id || sem.semester || `HK${idx + 1}`),
@@ -171,7 +165,9 @@ function normalizeCohorts(raw) {
     student_id: r.student_id || "",
     student_name: r.full_name || r.student_name || "",
     class_id: r.class_id || "",
+    gpa_semester: r.gpa_semester != null ? Number(r.gpa_semester) : 0,
     gpa_cumulative: r.gpa_cumulative != null ? Number(r.gpa_cumulative) : 0,
+    failed_credits: r.failed_credits != null ? Number(r.failed_credits) : 0,
     failed_credits_cumulative: r.accumulated_debt_credits != null ? Number(r.accumulated_debt_credits) : (r.failed_credits_cumulative || 0),
     risk_score: r.risk_score != null ? Number(r.risk_score) : 0,
     risk_level: r.risk_level || "NORMAL",
@@ -204,9 +200,20 @@ function normalizeGraph(raw) {
 }
 
 // ============================================================================
-// COMPONENT 1: HEADER & ROLE NAVIGATION (RBAC / RLS)
+// 2. HEADER & ROLE NAVIGATION (RBAC / RLS)
 // ============================================================================
-function Header({ currentRole, onRoleChange, onExportClick }) {
+function Header({ currentUsername, userRoles, onUserChange, onExportClick, onOpenRoleInfo }) {
+  const roles = Array.isArray(userRoles) && userRoles.length > 0 ? userRoles : [
+    { username: "daotao", role: "TRAINING_DEPT", display_name: "Phòng Quản lý Đào tạo (Toàn trường)", assigned_classes: [] },
+    { username: "cvht_lan", role: "ADVISOR", display_name: "TS. Nguyễn Thị Lan (Lớp DH23CS01, DH23CS02)", assigned_classes: ["DH23CS01", "DH23CS02"] },
+    { username: "cvht_minh", role: "ADVISOR", display_name: "ThS. Trần Văn Minh (Lớp DH24AI01, DH24AI02)", assigned_classes: ["DH24AI01", "DH24AI02"] },
+    { username: "cvht_hung", role: "ADVISOR", display_name: "TS. Lê Hoàng Hùng (Lớp DH23IS01, DH24IS02)", assigned_classes: ["DH23IS01", "DH24IS02"] },
+    { username: "bcnkhoa", role: "FACULTY_BOARD", display_name: "Ban Chủ nhiệm Khoa CNTT", assigned_classes: [] },
+    { username: "admin", role: "ADMIN", display_name: "Quản trị Hệ thống (Admin)", assigned_classes: [] },
+  ];
+
+  const activeUser = roles.find((r) => r.username === currentUsername) || roles[0];
+
   return (
     <header className="app">
       <div className="brand">
@@ -216,18 +223,30 @@ function Header({ currentRole, onRoleChange, onExportClick }) {
         </span>
       </div>
       <div className="rolebar">
-        <span>Vai trò (RBAC/RLS):</span>
+        <span>Vai trò (RBAC):</span>
         <select
           id="roleSelect"
           className="rolesel"
-          value={currentRole}
-          onChange={(e) => onRoleChange(e.target.value)}
+          value={currentUsername}
+          onChange={(e) => onUserChange(e.target.value)}
         >
-          <option value="ALL">Phòng Đào tạo / BCN Khoa (Toàn trường)</option>
-          <option value="1">CVHT: TS. Nguyễn Thị Lan (Phụ trách K23 CSDL)</option>
-          <option value="2">CVHT: ThS. Trần Văn Minh (Phụ trách K24 AI)</option>
-          <option value="3">CVHT: TS. Lê Hoàng Hùng (Phụ trách K23-24 HTTT)</option>
+          {roles.map((u) => (
+            <option key={u.username} value={u.username}>
+              {u.display_name} [{u.role}]
+            </option>
+          ))}
         </select>
+
+        <button
+          type="button"
+          className="graph-btn"
+          style={{ background: "#334155", color: "#F8FAFC", borderColor: "#475569" }}
+          onClick={onOpenRoleInfo}
+          title="Xem chi tiết phân quyền RBAC và chính sách bảo vệ dữ liệu RLS theo Nghị định 13/2023/NĐ-CP"
+        >
+          ⓘ Phân quyền &amp; RLS
+        </button>
+
         <button
           type="button"
           className="btn-export"
@@ -241,14 +260,17 @@ function Header({ currentRole, onRoleChange, onExportClick }) {
   );
 }
 
-// ============================================================================
-// COMPONENT 2: NOTICE BANNER (HYBRID ENGINE STATUS)
-// ============================================================================
-function NoticeBanner({ activeModelName }) {
+function NoticeBanner({ activeModelName, activeUser, enforceRls }) {
+  const isAdvisor = activeUser && activeUser.role === "ADVISOR";
   return (
     <div className="notice">
       <div>
-        <strong>Kiến trúc Hybrid:</strong> Tầng quy chế (Thông tư 08/2021/TT-BGDĐT) có quyền ưu tiên tuyệt đối; Tầng dự báo (Sheaf Attention Network) phát hiện sớm xu hướng sụt giảm điểm và quan hệ dị thể giữa các nhóm sinh viên.
+        <strong>Kiến trúc Hybrid:</strong> Tầng quy chế (Thông tư 08/2021/TT-BGDĐT) có quyền ưu tiên tuyệt đối; Tầng dự báo (Sheaf Attention Network) phát hiện sớm xu hướng sụt giảm điểm và quan hệ dị thể.
+        {isAdvisor && enforceRls && (
+          <span style={{ marginLeft: "10px", color: "#1E3A8A", fontWeight: 600 }}>
+            • Chế độ RLS: Đang giới hạn dữ liệu theo các lớp được phân công ({activeUser.assigned_classes.join(", ")})
+          </span>
+        )}
       </div>
       <div className="active-badge">
         Mô hình kích hoạt: {activeModelName || "Sheaf Attention v2.0"}
@@ -257,16 +279,13 @@ function NoticeBanner({ activeModelName }) {
   );
 }
 
-// ============================================================================
-// COMPONENT 3: TAB NAVIGATION BAR (8 WORKFLOW TABS)
-// ============================================================================
 function TabBar({ activeTab, onTabSelect }) {
   const tabs = [
     { id: "dash", label: "M02 · Tổng quan (Dashboard)" },
     { id: "slip", label: "M03 & M04 · Phiếu cá nhân & Diễn biến" },
-    { id: "cohort", label: "M05 · Danh sách toàn khóa (Cohort View)" },
+    { id: "cohort", label: "M05 · Danh sách toàn khóa (Cohort View & CRUD)" },
     { id: "graph", label: "M06 · Đồ thị quan hệ (Sheaf Network)" },
-    { id: "ops", label: "M08 & M09 · Can thiệp CVHT & Nhập liệu" },
+    { id: "ops", label: "M08 & M09 · Quản lý Can thiệp CVHT & Nhập liệu" },
     { id: "admin", label: "M10 & M11 · Quy chế & Benchmark Mô hình" },
     { id: "copilot", label: "🤖 Advisor Copilot (RAG + SQL)" },
     { id: "hex", label: "🏛 Kiến trúc Hexagonal (Node.js Gateway)" },
@@ -289,8 +308,46 @@ function TabBar({ activeTab, onTabSelect }) {
   );
 }
 
+function BreadcrumbBar({ activeTab, selectedStudentId, onNavigateTab }) {
+  const TAB_NAMES = {
+    dash: "M02 · Tổng quan (Dashboard)",
+    slip: "M03 & M04 · Phiếu cá nhân & Diễn biến",
+    cohort: "M05 · Danh sách toàn khóa (Cohort View)",
+    graph: "M06 · Đồ thị quan hệ (Sheaf Network)",
+    ops: "M08 & M09 · Quản lý Can thiệp & Nhập liệu",
+    admin: "M10 & M11 · Quy chế & Benchmark Mô hình",
+    copilot: "Advisor Copilot (RAG + SQL)",
+    hex: "Kiến trúc Hexagonal (Node.js Gateway)",
+  };
+
+  return (
+    <div className="breadcrumb-bar">
+      <span className="crumb-btn" onClick={() => onNavigateTab("dash")}>EduAlert</span>
+      <span className="breadcrumb-separator">›</span>
+      <span
+        className={activeTab === "dash" ? "breadcrumb-active" : "crumb-btn"}
+        onClick={() => onNavigateTab(activeTab)}
+      >
+        {TAB_NAMES[activeTab] || activeTab}
+      </span>
+      {activeTab === "slip" && selectedStudentId && (
+        <>
+          <span className="breadcrumb-separator">›</span>
+          <span className="breadcrumb-active">Hồ sơ: {selectedStudentId}</span>
+        </>
+      )}
+      {activeTab === "graph" && selectedStudentId && (
+        <>
+          <span className="breadcrumb-separator">›</span>
+          <span className="breadcrumb-active">Nút đã chọn: {selectedStudentId}</span>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ============================================================================
-// COMPONENT 4: REGISTRAR SEAL (CON DẤU TRÒN ĐÓNG DẤU ĐÁNH GIÁ NGUY CƠ)
+// 3. REGISTRAR SEAL & DIVERGING SHAP BAR
 // ============================================================================
 function RegistrarSeal({ riskLevel, riskScore, predictedGpa, predictedStd, studentId }) {
   const meta = getLevelMeta(riskLevel);
@@ -314,15 +371,11 @@ function RegistrarSeal({ riskLevel, riskScore, predictedGpa, predictedStd, stude
   );
 }
 
-// ============================================================================
-// COMPONENT 5: DIVERGING SHAP CONTRIBUTIONS BAR (ĐỐI XỨNG QUA TRỤC 0)
-// ============================================================================
 function ShapDivergingBar({ shapData }) {
   if (!shapData || shapData.length === 0) {
     return <p className="hint">Chưa có phân tích đóng góp yếu tố cho sinh viên này.</p>;
   }
 
-  // Find max absolute value to calibrate 50% midpoint
   const validVals = shapData.map((d) => Math.abs(Number(d.value) || 0));
   const maxAbs = Math.max(...validVals, 0.35);
 
@@ -362,7 +415,7 @@ function ShapDivergingBar({ shapData }) {
 }
 
 // ============================================================================
-// COMPONENT 6: M04 TRAJECTORY & FORECAST SVG CHART
+// 4. M04 TRAJECTORY & FORECAST SVG CHART
 // ============================================================================
 function TrajectoryChart({ history, predictedGpa, predictedStd }) {
   if (!history || history.length === 0) {
@@ -387,11 +440,8 @@ function TrajectoryChart({ history, predictedGpa, predictedStd }) {
   const stepX = chartW / Math.max(1, totalPoints - 1);
 
   const getY = (val) => padTop + chartH - ((Math.min(4.0, Math.max(0, Number(val) || 0)) / 4.0) * chartH);
-
-  // Regulation floor at 1.60
   const yFloor = getY(1.6);
 
-  // Past coordinates
   const pastCoords = history.map((item, idx) => ({
     x: padLeft + idx * stepX,
     y: getY(item.gpa_term),
@@ -420,7 +470,6 @@ function TrajectoryChart({ history, predictedGpa, predictedStd }) {
   return (
     <div className="svg-chart-wrapper">
       <svg viewBox={`0 0 ${width} ${height}`} className="trajectory-svg">
-        {/* Background grid lines */}
         {[1.0, 2.0, 3.0, 4.0].map((v) => {
           const y = getY(v);
           return (
@@ -431,11 +480,9 @@ function TrajectoryChart({ history, predictedGpa, predictedStd }) {
           );
         })}
 
-        {/* Regulation Floor threshold 1.6 */}
         <line x1={padLeft} y1={yFloor} x2={width - padRight} y2={yFloor} stroke="#EF4444" strokeWidth="1" strokeDasharray="3 3" />
         <text x={width - padRight} y={yFloor - 4} textAnchor="end" fill="#EF4444" className="chart-label-warn">Sàn TT08 (1.60)</text>
 
-        {/* Forecast confidence band */}
         {forecastCoord && upperY != null && lowerY != null && (
           <path
             d={`M ${pastCoords[pastCoords.length - 1].x} ${pastCoords[pastCoords.length - 1].y}
@@ -445,10 +492,8 @@ function TrajectoryChart({ history, predictedGpa, predictedStd }) {
           />
         )}
 
-        {/* Past line */}
         <path d={pastPath} fill="none" stroke="#1E3A8A" strokeWidth="2.5" />
 
-        {/* Forecast dotted connection */}
         {forecastCoord && (
           <line
             x1={pastCoords[pastCoords.length - 1].x}
@@ -461,7 +506,6 @@ function TrajectoryChart({ history, predictedGpa, predictedStd }) {
           />
         )}
 
-        {/* Past points */}
         {pastCoords.map((pt, i) => (
           <g key={i}>
             <circle cx={pt.x} cy={pt.y} r="4" fill="#FFFFFF" stroke="#1E3A8A" strokeWidth="2.5" />
@@ -470,7 +514,6 @@ function TrajectoryChart({ history, predictedGpa, predictedStd }) {
           </g>
         ))}
 
-        {/* Forecast point */}
         {forecastCoord && (
           <g>
             <circle cx={forecastCoord.x} cy={forecastCoord.y} r="5" fill="#EF4444" stroke="#FFFFFF" strokeWidth="2" />
@@ -486,7 +529,7 @@ function TrajectoryChart({ history, predictedGpa, predictedStd }) {
 }
 
 // ============================================================================
-// TAB 1: M02 DASHBOARD OVERVIEW
+// 5. TAB 1: M02 DASHBOARD
 // ============================================================================
 function DashboardTab({ stats, bffTelemetry, onClassClick }) {
   if (!stats) return <div className="card loading-state">Đang tải dữ liệu tổng quan từ Node.js BFF Gateway...</div>;
@@ -501,7 +544,6 @@ function DashboardTab({ stats, bffTelemetry, onClassClick }) {
 
   return (
     <div>
-      {/* 5 KPI Pills */}
       <div className="kpi-row">
         <div className="pill">
           <span>Tổng sinh viên theo dõi</span>
@@ -530,7 +572,6 @@ function DashboardTab({ stats, bffTelemetry, onClassClick }) {
         </div>
       </div>
 
-      {/* Gateway Telemetry Banner (From Node.js v24 BFF) */}
       {bffTelemetry && (
         <div className="gateway-telemetry-banner">
           <div className="gw-item">
@@ -546,7 +587,6 @@ function DashboardTab({ stats, bffTelemetry, onClassClick }) {
         </div>
       )}
 
-      {/* Row 2: Trend & Fairness */}
       <div className="grid-equal">
         <div className="card">
           <h2>Xu hướng ĐTB và diễn biến cảnh báo qua các kỳ</h2>
@@ -603,7 +643,6 @@ function DashboardTab({ stats, bffTelemetry, onClassClick }) {
         </div>
       </div>
 
-      {/* Row 3: Class Breakdown */}
       <div className="card">
         <h2>Thống kê mức độ nguy cơ theo Lớp sinh hoạt &amp; Cố vấn học tập</h2>
         <p className="hint">Nhấp vào dòng bất kỳ để chuyển sang lọc lớp tương ứng trong Cohort View (M05).</p>
@@ -641,7 +680,7 @@ function DashboardTab({ stats, bffTelemetry, onClassClick }) {
 }
 
 // ============================================================================
-// TAB 2: M03 & M04 INDIVIDUAL SLIP & WHAT-IF SIMULATOR
+// 6. TAB 2: M03 & M04 INDIVIDUAL SLIP & WHAT-IF SIMULATOR
 // ============================================================================
 function IndividualSlipTab({
   studentId,
@@ -651,6 +690,7 @@ function IndividualSlipTab({
   onQuickPick,
   onSimulate,
   simResult,
+  onOpenEditStudent,
 }) {
   const [showSim, setShowSim] = useState(false);
   const [simGpa, setSimGpa] = useState(1.45);
@@ -674,7 +714,6 @@ function IndividualSlipTab({
 
   return (
     <div>
-      {/* Search and Quick Pick Bar */}
       <div className="card picker-bar">
         <div className="picker-left">
           <label><strong>Tra cứu mã hồ sơ sinh viên:</strong></label>
@@ -692,14 +731,23 @@ function IndividualSlipTab({
             <button type="button" className="small" onClick={() => onQuickPick("SV005")}>Mẫu Thôi học (SV005)</button>
           </div>
         </div>
-        <div>
+        <div style={{ display: "flex", gap: "8px" }}>
+          {assessment && (
+            <button
+              type="button"
+              className="small"
+              style={{ borderColor: "var(--stamp-blue)", color: "var(--stamp-blue)", fontWeight: 600 }}
+              onClick={() => onOpenEditStudent(assessment)}
+            >
+              ✏️ Sửa điểm học kỳ (CRUD)
+            </button>
+          )}
           <button type="button" className="small toggle-sim-btn" onClick={() => setShowSim(!showSim)}>
-            {showSim ? "✕ Đóng bộ giả lập What-If" : "⚙ Mở bộ giả lập What-If trực tiếp"}
+            {showSim ? "✕ Đóng bộ giả lập What-If" : "⚙ Mở bộ giả lập What-If"}
           </button>
         </div>
       </div>
 
-      {/* Optional What-If Simulator Panel */}
       {showSim && (
         <div className="card sim-panel">
           <h2>Bộ giả lập học vụ What-If (Thử nghiệm kịch bản học kỳ tới)</h2>
@@ -787,7 +835,6 @@ function IndividualSlipTab({
 
       {!loading && assessment && (
         <div className="grid2">
-          {/* Left Column: Visual Charts & Sheaf Relations */}
           <div>
             <div className="card">
               <h2>M04 · Diễn biến học tập &amp; Dự báo kỳ tới</h2>
@@ -828,7 +875,6 @@ function IndividualSlipTab({
             </div>
           </div>
 
-          {/* Right Column: Signature Result Slip (Phiếu Đánh Giá Chính Thức) */}
           <div className="slip">
             <div className="slip-head">
               <div className="org">TRƯỜNG ĐẠI HỌC MỞ THÀNH PHỐ HỒ CHÍ MINH — KHOA CÔNG NGHỆ THÔNG TIN</div>
@@ -842,7 +888,6 @@ function IndividualSlipTab({
             </div>
 
             <div className="slip-body">
-              {/* Registrar Seal */}
               <RegistrarSeal
                 riskLevel={assessment.risk_level}
                 riskScore={assessment.risk_score}
@@ -851,9 +896,7 @@ function IndividualSlipTab({
                 studentId={assessment.student_id}
               />
 
-              {/* Detail Content */}
               <div className="slip-content">
-                {/* Rule box */}
                 <div className={`rulebox ${assessment.rule_results && assessment.rule_results.some((r) => r.is_triggered) ? "trig" : "clear"}`}>
                   <h4>Kết luận Tầng Quy chế (Thông tư 08/2021/TT-BGDĐT):</h4>
                   {assessment.rule_results && assessment.rule_results.length > 0 ? (
@@ -869,19 +912,16 @@ function IndividualSlipTab({
                   )}
                 </div>
 
-                {/* Natural language explanation */}
                 <div className="expl">
                   <strong>Giải thích nguyên nhân: </strong>
                   {assessment.explanation_text}
                 </div>
 
-                {/* Advisor Action Hint */}
                 <div className="advisor-hint-box">
                   <strong>Gợi ý can thiệp cho CVHT: </strong>
                   {assessment.advisor_action_hint}
                 </div>
 
-                {/* SHAP Diverging Bar */}
                 <ShapDivergingBar shapData={assessment.shap_contributions} />
               </div>
             </div>
@@ -893,76 +933,259 @@ function IndividualSlipTab({
 }
 
 // ============================================================================
-// TAB 3: M05 COHORT VIEW
+// 7. TAB 3: M05 ADVANCED FILTERED COHORT VIEW & CRUD
 // ============================================================================
-function CohortTab({ cohorts, onSelectStudent, currentRole }) {
+function CohortTab({
+  cohorts,
+  onSelectStudent,
+  onOpenEditStudent,
+  onNavigateToGraph,
+  onNavigateToIntervention,
+  activeUser,
+  enforceRls,
+  onToggleRls,
+  initialRuleFilter,
+}) {
+  // Advanced Filter States
   const [filterClass, setFilterClass] = useState("ALL");
   const [filterRisk, setFilterRisk] = useState("ALL");
+  const [filterRuleStatus, setFilterRuleStatus] = useState("ALL");
+  const [filterSpecificRule, setFilterSpecificRule] = useState(initialRuleFilter || "ALL");
+  const [filterGpaRange, setFilterGpaRange] = useState("ALL");
+  const [filterDebt, setFilterDebt] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("RISK_DESC");
   const [page, setPage] = useState(1);
-  const pageSize = 15;
+  const [pageSize, setPageSize] = useState(15);
+
+  useEffect(() => {
+    if (initialRuleFilter) {
+      setFilterSpecificRule(initialRuleFilter);
+      setPage(1);
+    }
+  }, [initialRuleFilter]);
 
   const cohortList = useMemo(() => normalizeCohorts(cohorts), [cohorts]);
 
-  const filtered = useMemo(() => {
-    return cohortList.filter((s) => {
+  // Available classes for dropdown
+  const classList = useMemo(() => {
+    const set = new Set();
+    cohortList.forEach((c) => { if (c.class_id) set.add(c.class_id); });
+    return Array.from(set).sort();
+  }, [cohortList]);
+
+  // Multi-criteria Filtering & Sorting
+  const filteredAndSorted = useMemo(() => {
+    let result = cohortList.filter((s) => {
+      // 0. Row-Level Security (RLS) enforcement
+      if (enforceRls && activeUser && activeUser.role === "ADVISOR" && Array.isArray(activeUser.assigned_classes) && activeUser.assigned_classes.length > 0) {
+        if (!activeUser.assigned_classes.includes(s.class_id)) return false;
+      }
+
+      // 1. Class filter
       if (filterClass !== "ALL" && s.class_id !== filterClass) return false;
+
+      // 2. Risk level filter
       if (filterRisk !== "ALL" && s.risk_level !== filterRisk) return false;
-      if (searchTerm) {
-        const q = searchTerm.toLowerCase();
+
+      // 3. Rule status filter
+      if (filterRuleStatus === "TRIGGERED" && s.rule_violations_count <= 0) return false;
+      if (filterRuleStatus === "SAFE" && s.rule_violations_count > 0) return false;
+
+      // 3b. Specific rule filter
+      if (filterSpecificRule !== "ALL") {
+        const vRules = s.violated_rules || [];
+        if (!vRules.includes(filterSpecificRule)) return false;
+      }
+
+      // 4. GPA Range filter
+      if (filterGpaRange === "LT_15" && s.gpa_cumulative >= 1.5) return false;
+      if (filterGpaRange === "FROM_15_TO_20" && (s.gpa_cumulative < 1.5 || s.gpa_cumulative >= 2.0)) return false;
+      if (filterGpaRange === "FROM_20_TO_25" && (s.gpa_cumulative < 2.0 || s.gpa_cumulative >= 2.5)) return false;
+      if (filterGpaRange === "GT_25" && s.gpa_cumulative < 2.5) return false;
+
+      // 5. Debt credits filter
+      if (filterDebt === "GT_10" && s.failed_credits_cumulative < 10) return false;
+      if (filterDebt === "GT_24" && s.failed_credits_cumulative < 24) return false;
+
+      // 6. Full-text search
+      if (searchTerm.trim()) {
+        const q = searchTerm.toLowerCase().trim();
         const sid = (s.student_id || "").toLowerCase();
         const sname = (s.student_name || "").toLowerCase();
         if (!sid.includes(q) && !sname.includes(q)) return false;
       }
       return true;
     });
-  }, [cohortList, filterClass, filterRisk, searchTerm]);
 
-  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
-  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
+    // Sắp xếp
+    result.sort((a, b) => {
+      if (sortBy === "RISK_DESC") return (b.risk_score || 0) - (a.risk_score || 0);
+      if (sortBy === "GPA_ASC") return (a.gpa_cumulative || 0) - (b.gpa_cumulative || 0);
+      if (sortBy === "GPA_DESC") return (b.gpa_cumulative || 0) - (a.gpa_cumulative || 0);
+      if (sortBy === "DEBT_DESC") return (b.failed_credits_cumulative || 0) - (a.failed_credits_cumulative || 0);
+      if (sortBy === "NAME_ASC") return (a.student_name || "").localeCompare(b.student_name || "");
+      return 0;
+    });
 
-  // Available classes
-  const classList = useMemo(() => {
-    const set = new Set();
-    cohortList.forEach((c) => { if (c.class_id) set.add(c.class_id); });
-    return Array.from(set);
-  }, [cohortList]);
+    return result;
+  }, [cohortList, filterClass, filterRisk, filterRuleStatus, filterSpecificRule, filterGpaRange, filterDebt, searchTerm, sortBy, enforceRls, activeUser]);
+
+  const totalPages = Math.ceil(filteredAndSorted.length / pageSize) || 1;
+  const paginated = filteredAndSorted.slice((page - 1) * pageSize, page * pageSize);
+
+  const handleResetFilters = () => {
+    setFilterClass("ALL");
+    setFilterRisk("ALL");
+    setFilterRuleStatus("ALL");
+    setFilterSpecificRule("ALL");
+    setFilterGpaRange("ALL");
+    setFilterDebt("ALL");
+    setSearchTerm("");
+    setSortBy("RISK_DESC");
+    setPage(1);
+  };
+
+  const isAdvisor = activeUser && activeUser.role === "ADVISOR";
 
   return (
     <div>
-      <div className="card filter-bar">
-        <div className="filter-item">
-          <label>Lọc theo Lớp sinh hoạt:</label>
-          <select value={filterClass} onChange={(e) => { setFilterClass(e.target.value); setPage(1); }}>
-            <option value="ALL">-- Tất cả các lớp --</option>
-            {classList.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
+      {/* RLS Enforcement Notice */}
+      {isAdvisor && (
+        <div className="rls-banner">
+          <div>
+            <strong>🛡️ Row-Level Security (RLS) theo Nghị định 13/2023/NĐ-CP:</strong>{" "}
+            {enforceRls ? (
+              <span>Đang áp dụng bộ lọc chỉ xem sinh viên các lớp phụ trách (<strong>{activeUser.assigned_classes.join(", ")}</strong>).</span>
+            ) : (
+              <span style={{ color: "#B45309" }}>Đã tạm tắt RLS — Đang hiển thị toàn trường (Chế độ Quản trị/Thử nghiệm).</span>
+            )}
+          </div>
+          <button
+            type="button"
+            className="small"
+            onClick={onToggleRls}
+            title="Bật/Tắt RLS để kiểm thử phân quyền cấp dòng"
+          >
+            {enforceRls ? "Tạm tắt RLS (Xem toàn trường)" : "Bật lại RLS"}
+          </button>
         </div>
-        <div className="filter-item">
-          <label>Lọc theo Mức độ nguy cơ:</label>
-          <select value={filterRisk} onChange={(e) => { setFilterRisk(e.target.value); setPage(1); }}>
-            <option value="ALL">-- Tất cả mức độ --</option>
-            <option value="HIGH_RISK">🔴 Nguy cơ cao (Ưu tiên gặp)</option>
-            <option value="ATTENTION">🟡 Cần chú ý (Sớm)</option>
-            <option value="NORMAL">🟢 Bình thường</option>
-          </select>
+      )}
+
+      {/* Advanced Filter Toolbar (Chuẩn Impeccable) */}
+      <div className="advanced-filter-panel">
+        <div className="filter-grid">
+          <div>
+            <label>Tìm kiếm Mã SV / Họ tên:</label>
+            <input
+              type="text"
+              placeholder="VD: SV002 hoặc Nam..."
+              value={searchTerm}
+              onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
+            />
+          </div>
+
+          <div>
+            <label>Lớp sinh hoạt:</label>
+            <select value={filterClass} onChange={(e) => { setFilterClass(e.target.value); setPage(1); }}>
+              <option value="ALL">-- Tất cả các lớp --</option>
+              {classList.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label>Mức độ nguy cơ:</label>
+            <select value={filterRisk} onChange={(e) => { setFilterRisk(e.target.value); setPage(1); }}>
+              <option value="ALL">-- Tất cả mức độ --</option>
+              <option value="HIGH_RISK">🔴 Nguy cơ cao (Ưu tiên gặp)</option>
+              <option value="ATTENTION">🟡 Cần chú ý (Sớm)</option>
+              <option value="NORMAL">🟢 Bình thường</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Điều kiện Quy chế TT08:</label>
+            <select value={filterRuleStatus} onChange={(e) => { setFilterRuleStatus(e.target.value); setPage(1); }}>
+              <option value="ALL">-- Tất cả trạng thái --</option>
+              <option value="TRIGGERED">❌ Đã chạm ngưỡng quy chế TT08</option>
+              <option value="SAFE">✓ Chưa vi phạm quy chế</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Lọc Quy chế cụ thể (M10):</label>
+            <select value={filterSpecificRule} onChange={(e) => { setFilterSpecificRule(e.target.value); setPage(1); }}>
+              <option value="ALL">-- Tất cả 5 quy chế --</option>
+              <option value="R01_SEM_FAIL_RATIO">R01: Trượt &gt; 50% TC đăng ký</option>
+              <option value="R02_ACCUM_DEBT_CREDITS">R02: Nợ đọng &gt; 24 tín chỉ</option>
+              <option value="R03_SEM_GPA_FLOOR">R03: ĐTB học kỳ dưới sàn</option>
+              <option value="R04_CUM_GPA_BY_YEAR">R04: ĐTB tích lũy dưới sàn năm</option>
+              <option value="R05_CONSECUTIVE_WARNINGS">R05: Cảnh báo liên tiếp (Buộc thôi học)</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Khoảng ĐTB Tích lũy:</label>
+            <select value={filterGpaRange} onChange={(e) => { setFilterGpaRange(e.target.value); setPage(1); }}>
+              <option value="ALL">-- Tất cả thang điểm --</option>
+              <option value="LT_15">Dưới 1.50 (Báo động đỏ)</option>
+              <option value="FROM_15_TO_20">Từ 1.50 – 1.99</option>
+              <option value="FROM_20_TO_25">Từ 2.00 – 2.49</option>
+              <option value="GT_25">Từ 2.50 trở lên</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Số tín chỉ nợ đọng:</label>
+            <select value={filterDebt} onChange={(e) => { setFilterDebt(e.target.value); setPage(1); }}>
+              <option value="ALL">-- Tất cả mức nợ --</option>
+              <option value="GT_10">Nợ từ 10 TC trở lên</option>
+              <option value="GT_24">Nợ trên 24 TC (Chạm trần R02)</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Sắp xếp danh sách theo:</label>
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+              <option value="RISK_DESC">Xác suất nguy cơ giảm dần</option>
+              <option value="GPA_ASC">ĐTB tích lũy tăng dần (Thấp nhất)</option>
+              <option value="GPA_DESC">ĐTB tích lũy giảm dần</option>
+              <option value="DEBT_DESC">Tín chỉ nợ đọng nhiều nhất</option>
+              <option value="NAME_ASC">Họ và tên (A → Z)</option>
+            </select>
+          </div>
         </div>
-        <div className="filter-item" style={{ flex: 1 }}>
-          <label>Tìm kiếm Mã sinh viên hoặc Họ tên:</label>
-          <input
-            type="text"
-            placeholder="Nhập MSSV (SV001...) hoặc tên sinh viên"
-            value={searchTerm}
-            onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
-          />
-        </div>
-        <div className="filter-count">
-          <span>Tìm thấy: <strong>{filtered.length}</strong> sinh viên</span>
+
+        <div className="filter-actions">
+          <div className="filter-badge-count">
+            Kết quả: <strong>{filteredAndSorted.length}</strong> / {cohortList.length} sinh viên
+            {filterSpecificRule !== "ALL" && (
+              <span className="badge b-bad" style={{ marginLeft: "8px" }}>
+                Đang lọc: {filterSpecificRule}
+              </span>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            <span style={{ fontSize: ".8rem", color: "var(--ink-muted)" }}>Hiển thị:</span>
+            <select
+              style={{ width: "auto", padding: "3px 8px", fontSize: ".8rem" }}
+              value={pageSize}
+              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+            >
+              <option value="15">15 dòng/trang</option>
+              <option value="25">25 dòng/trang</option>
+              <option value="50">50 dòng/trang</option>
+            </select>
+            <button type="button" className="btn-reset" onClick={handleResetFilters}>
+              ↺ Đặt lại bộ lọc
+            </button>
+          </div>
         </div>
       </div>
 
+      {/* Cohort Table with In-place CRUD trigger */}
       <div className="card">
         <table className="data">
           <thead>
@@ -970,12 +1193,13 @@ function CohortTab({ cohorts, onSelectStudent, currentRole }) {
               <th>Mã SV</th>
               <th>Họ và tên</th>
               <th>Lớp</th>
+              <th>ĐTB HK</th>
               <th>ĐTB Tích lũy</th>
               <th>Nợ tín chỉ</th>
               <th>Xác suất nguy cơ</th>
               <th>Mức độ</th>
               <th>Quy chế TT08</th>
-              <th>Thao tác</th>
+              <th>Thao tác Liên kết &amp; CRUD</th>
             </tr>
           </thead>
           <tbody>
@@ -986,9 +1210,10 @@ function CohortTab({ cohorts, onSelectStudent, currentRole }) {
                   <td><strong>{s.student_id}</strong></td>
                   <td>{s.student_name}</td>
                   <td>{s.class_id}</td>
+                  <td>{Number(s.gpa_semester || 0).toFixed(2)}</td>
                   <td>{Number(s.gpa_cumulative).toFixed(2)}</td>
                   <td>{s.failed_credits_cumulative} TC</td>
-                  <td>{Math.round(s.risk_score)}%</td>
+                  <td><strong>{Math.round(s.risk_score)}%</strong></td>
                   <td><span className={`badge ${meta.badgeClass}`}>{meta.label}</span></td>
                   <td>
                     {s.rule_violations_count > 0 ? (
@@ -998,24 +1223,55 @@ function CohortTab({ cohorts, onSelectStudent, currentRole }) {
                     )}
                   </td>
                   <td>
-                    <button type="button" className="small" onClick={() => onSelectStudent(s.student_id)}>
-                      Xem phiếu M03
-                    </button>
+                    <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        className="small"
+                        onClick={() => onSelectStudent(s.student_id)}
+                        title="Xem Phiếu đánh giá cá nhân M03"
+                      >
+                        📄 Hồ sơ
+                      </button>
+                      <button
+                        type="button"
+                        className="small"
+                        onClick={() => onNavigateToGraph(s.student_id)}
+                        title="Xem vị trí sinh viên trên Đồ thị Sheaf M06"
+                        style={{ background: "#EFF6FF", color: "#1E3A8A", borderColor: "#BFDBFE" }}
+                      >
+                        🕸️ Đồ thị
+                      </button>
+                      <button
+                        type="button"
+                        className="small"
+                        onClick={() => onNavigateToIntervention(s.student_id)}
+                        title="Lập biên bản can thiệp sư phạm M08"
+                      >
+                        ✍️ Can thiệp
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-edit"
+                        onClick={() => onOpenEditStudent(s)}
+                        title="Chỉnh sửa điểm học kỳ và cập nhật CSDL"
+                      >
+                        ✏️ Sửa điểm
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );
             })}
             {paginated.length === 0 && (
               <tr>
-                <td colSpan="9" style={{ textAlign: "center", padding: "24px" }} className="hint">
-                  Không tìm thấy sinh viên nào khớp với điều kiện lọc.
+                <td colSpan="10" style={{ textAlign: "center", padding: "30px" }} className="hint">
+                  Không tìm thấy sinh viên nào khớp với các tiêu chí lọc đã chọn.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="pagination-bar">
             <button type="button" className="small" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
@@ -1033,26 +1289,45 @@ function CohortTab({ cohorts, onSelectStudent, currentRole }) {
 }
 
 // ============================================================================
-// TAB 4: M06 SHEAF GRAPH NETWORK VISUALIZER (SVG CRASH-SAFE GRAPH)
+// 8. TAB 4: M06 SHEAF GRAPH NETWORK VISUALIZER (CINEMATIC HERO CANVAS)
 // ============================================================================
-function GraphNetworkTab({ graphData, onSelectStudent }) {
+function GraphNetworkTab({
+  graphData,
+  onSelectStudent,
+  onOpenIntervention,
+  onFilterInCohort,
+  onAskCopilot,
+  initialSelectedSid,
+}) {
   const [selectedNode, setSelectedNode] = useState(null);
   const [filterClass, setFilterClass] = useState("ALL");
+  const [filterRisk, setFilterRisk] = useState("ALL");
+  const [highAttentionOnly, setHighAttentionOnly] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [scale, setScale] = useState(1.0);
+  const [showLabels, setShowLabels] = useState(true);
 
   const normalized = useMemo(() => normalizeGraph(graphData), [graphData]);
 
-  const width = 840;
-  const height = 520;
+  // Cinematic Large Dimensions (1100 x 720)
+  const width = 1100;
+  const height = 720;
   const cx = width / 2;
   const cy = height / 2;
 
-  // Filter nodes if needed
+  // Filter nodes based on Class and Risk Level
   const visibleNodes = useMemo(() => {
-    return normalized.nodes.filter((n) => filterClass === "ALL" || n.class_id === filterClass);
-  }, [normalized.nodes, filterClass]);
+    return normalized.nodes.filter((n) => {
+      if (filterClass !== "ALL" && n.class_id !== filterClass) return false;
+      if (filterRisk === "HIGH_RISK" && n.risk_level !== "HIGH_RISK") return false;
+      if (filterRisk === "ATTENTION_OR_HIGH" && n.risk_level === "NORMAL") return false;
+      if (filterRisk === "TT08_VIOLATION" && !n.rule_triggered) return false;
+      return true;
+    });
+  }, [normalized.nodes, filterClass, filterRisk]);
 
-  // Position nodes radially / clustered by class
-  const nodePositions = useMemo(() => {
+  // Cluster-aware Layout & Coordinate Mapping
+  const { nodePositions, classClusters } = useMemo(() => {
     const map = new Map();
     const classGroups = {};
     visibleNodes.forEach((n) => {
@@ -1061,79 +1336,282 @@ function GraphNetworkTab({ graphData, onSelectStudent }) {
       classGroups[cid].push(n);
     });
 
-    const cKeys = Object.keys(classGroups);
-    cKeys.forEach((cid, cIdx) => {
-      const clusterAngle = (cIdx / Math.max(1, cKeys.length)) * 2 * Math.PI;
-      const clusterRadius = cKeys.length > 1 ? 140 : 0;
-      const cX = cx + Math.cos(clusterAngle) * clusterRadius;
-      const cY = cy + Math.sin(clusterAngle) * clusterRadius;
+    const cKeys = Object.keys(classGroups).sort();
+    const clusters = [];
 
+    if (cKeys.length === 1) {
+      // Single Class Mode: Expansive Circular Distribution
+      const cid = cKeys[0];
       const group = classGroups[cid];
-      group.forEach((node, nIdx) => {
-        const nodeAngle = (nIdx / Math.max(1, group.length)) * 2 * Math.PI;
-        const nodeRadius = 35 + (nIdx % 3) * 35;
-        const x = cX + Math.cos(nodeAngle) * nodeRadius;
-        const y = cY + Math.sin(nodeAngle) * nodeRadius;
+      clusters.push({ cid, cX: cx, cY: cy, rx: 270, ry: 250 });
+      group.forEach((node, idx) => {
+        const ring = idx % 3;
+        const radius = 60 + ring * 75;
+        const countInRing = Math.ceil(group.length / 3);
+        const ringIdx = Math.floor(idx / 3);
+        const angle = (ringIdx / Math.max(1, countInRing)) * 2 * Math.PI + (ring * 0.4);
+        const x = cx + Math.cos(angle) * radius;
+        const y = cy + Math.sin(angle) * radius;
         map.set(node.id, { x, y, node });
       });
-    });
+    } else {
+      // Multi-Class Mode: Balanced Ring of Clusters
+      cKeys.forEach((cid, cIdx) => {
+        const clusterAngle = (cIdx / Math.max(1, cKeys.length)) * 2 * Math.PI - (Math.PI / 2);
+        const clusterRadius = 265;
+        const cX = cx + Math.cos(clusterAngle) * clusterRadius;
+        const cY = cy + Math.sin(clusterAngle) * clusterRadius;
+        clusters.push({ cid, cX, cY, rx: 135, ry: 110 });
 
-    return map;
+        const group = classGroups[cid];
+        group.forEach((node, nIdx) => {
+          const ring = nIdx % 2;
+          const radius = ring === 0 ? 44 : 82;
+          const countInRing = Math.ceil(group.length / 2);
+          const ringIdx = Math.floor(nIdx / 2);
+          const nodeAngle = (ringIdx / Math.max(1, countInRing)) * 2 * Math.PI + (ring * 0.5);
+          const x = cX + Math.cos(nodeAngle) * radius;
+          const y = cY + Math.sin(nodeAngle) * radius;
+          map.set(node.id, { x, y, node });
+        });
+      });
+    }
+
+    return { nodePositions: map, classClusters: clusters };
   }, [visibleNodes, cx, cy]);
 
+  // Filter edges connected to positioned nodes
   const visibleEdges = useMemo(() => {
     return normalized.edges.filter((e) => {
-      return e.source && e.target && nodePositions.has(e.source) && nodePositions.has(e.target);
+      if (!e.source || !e.target) return false;
+      if (!nodePositions.has(e.source) || !nodePositions.has(e.target)) return false;
+      if (highAttentionOnly && (e.sheaf_alpha || 0) < 0.5) return false;
+      return true;
     });
-  }, [normalized.edges, nodePositions]);
+  }, [normalized.edges, nodePositions, highAttentionOnly]);
+
+  // Sync initialSelectedSid
+  useEffect(() => {
+    if (initialSelectedSid) {
+      const match = normalized.nodes.find((n) => n.id === initialSelectedSid);
+      if (match) setSelectedNode(match);
+    }
+  }, [initialSelectedSid, normalized.nodes]);
+
+  // Search input handler
+  const handleSearch = (e) => {
+    const q = e.target.value.trim().toUpperCase();
+    setSearchQuery(q);
+    if (q) {
+      const match = normalized.nodes.find((n) => n.id === q || (n.label && n.label.toUpperCase().includes(q)));
+      if (match) setSelectedNode(match);
+    }
+  };
+
+  // Connected peers for selected node
+  const selectedPeers = useMemo(() => {
+    if (!selectedNode) return [];
+    const peers = [];
+    normalized.edges.forEach((e) => {
+      if (e.source === selectedNode.id && nodePositions.has(e.target)) {
+        peers.push({
+          peerId: e.target,
+          alpha: e.sheaf_alpha || 0.2,
+          node: nodePositions.get(e.target).node,
+        });
+      } else if (e.target === selectedNode.id && nodePositions.has(e.source)) {
+        peers.push({
+          peerId: e.source,
+          alpha: e.sheaf_alpha || 0.2,
+          node: nodePositions.get(e.source).node,
+        });
+      }
+    });
+    peers.sort((a, b) => b.alpha - a.alpha);
+    return peers.slice(0, 5);
+  }, [selectedNode, normalized.edges, nodePositions]);
 
   return (
-    <div className="grid2">
-      <div>
-        <div className="card">
-          <div className="graph-controls">
-            <h2>M06 · Đồ thị Sheaf Attention Network ({visibleNodes.length} Nodes / {visibleEdges.length} Edges)</h2>
-            <select value={filterClass} onChange={(e) => setFilterClass(e.target.value)}>
-              <option value="ALL">-- Hiển thị tất cả các lớp --</option>
-              <option value="DH23CS01">Lớp DH23CS01 (Chuyên ngành CSDL)</option>
-              <option value="DH24AI02">Lớp DH24AI02 (Chuyên ngành AI)</option>
-              <option value="DH23HT01">Lớp DH23HT01 (Hệ thống thông tin)</option>
+    <div className="graph-hero-layout">
+      {/* Left Column: Large Hero SVG Canvas & Toolbar */}
+      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+        {/* Graph Toolbar */}
+        <div className="graph-toolbar">
+          <div className="graph-toolbar-group">
+            <select
+              style={{ width: "auto", fontSize: ".82rem" }}
+              value={filterClass}
+              onChange={(e) => setFilterClass(e.target.value)}
+            >
+              <option value="ALL">-- Tất cả 6 lớp sinh hoạt --</option>
+              <option value="DH23CS01">Lớp DH23CS01 (K23 CSDL - TS. Lan)</option>
+              <option value="DH23CS02">Lớp DH23CS02 (K23 CSDL - TS. Lan)</option>
+              <option value="DH24AI01">Lớp DH24AI01 (K24 AI - ThS. Minh)</option>
+              <option value="DH24AI02">Lớp DH24AI02 (K24 AI - ThS. Minh)</option>
+              <option value="DH23IS01">Lớp DH23IS01 (K23 HTTT - TS. Hùng)</option>
+              <option value="DH24IS02">Lớp DH24IS02 (K24 HTTT - TS. Hùng)</option>
             </select>
-          </div>
-          <p className="hint">
-            Nhấp chuột vào một nút sinh viên để highlight lân cận và xem trọng số attention &alpha;<sub>vu</sub>.
-          </p>
 
-          <div className="svg-graph-box">
-            <svg viewBox={`0 0 ${width} ${height}`} className="network-svg">
-              {/* Edges */}
+            <select
+              style={{ width: "auto", fontSize: ".82rem" }}
+              value={filterRisk}
+              onChange={(e) => setFilterRisk(e.target.value)}
+            >
+              <option value="ALL">Tất cả mức độ nguy cơ</option>
+              <option value="ATTENTION_OR_HIGH">🔴 Vàng &amp; Đỏ (Cảnh báo &amp; Nguy cơ)</option>
+              <option value="HIGH_RISK">🔴 Chỉ Nhóm Đỏ (HIGH_RISK)</option>
+              <option value="TT08_VIOLATION">⚠️ Chỉ SV vi phạm Điều 11 TT08</option>
+            </select>
+
+            <button
+              type="button"
+              className={`graph-btn ${highAttentionOnly ? "active" : ""}`}
+              onClick={() => setHighAttentionOnly((prev) => !prev)}
+              title="Chỉ hiển thị các cạnh có trọng số chú ý Sheaf alpha >= 0.5"
+            >
+              &alpha; &ge; 0.5 (Chú ý cao)
+            </button>
+          </div>
+
+          <div className="graph-toolbar-group">
+            <input
+              type="text"
+              className="graph-search-input"
+              placeholder="🔍 Tìm MSSV (VD: SV002)..."
+              value={searchQuery}
+              onChange={handleSearch}
+            />
+
+            <button
+              type="button"
+              className="graph-btn"
+              onClick={() => setScale((s) => Math.min(2.0, s + 0.15))}
+              title="Phóng to đồ thị"
+            >
+              +
+            </button>
+            <button
+              type="button"
+              className="graph-btn"
+              onClick={() => setScale((s) => Math.max(0.65, s - 0.15))}
+              title="Thu nhỏ đồ thị"
+            >
+              −
+            </button>
+            <button
+              type="button"
+              className="graph-btn"
+              onClick={() => { setScale(1.0); setSelectedNode(null); }}
+              title="Đặt lại tỉ lệ 100% và bỏ chọn"
+            >
+              ⟲ Đặt lại
+            </button>
+            <button
+              type="button"
+              className={`graph-btn ${showLabels ? "active" : ""}`}
+              onClick={() => setShowLabels((prev) => !prev)}
+              title="Bật/Tắt nhãn MSSV trên các nút"
+            >
+              🏷 Nhãn
+            </button>
+          </div>
+        </div>
+
+        {/* SVG Canvas Box with Relative Floating Legend */}
+        <div className="graph-container-relative">
+          <svg
+            viewBox={`0 0 ${width} ${height}`}
+            className="network-svg"
+            style={{ minHeight: "560px", background: "#FAFBFD" }}
+          >
+            <g transform={`scale(${scale})`} transformOrigin={`${cx} ${cy}`}>
+              {/* Class Cluster Boundaries */}
+              {classClusters.map((c) => (
+                <g key={c.cid}>
+                  <ellipse
+                    cx={c.cX}
+                    cy={c.cY}
+                    rx={c.rx}
+                    ry={c.ry}
+                    fill="rgba(241, 245, 249, 0.55)"
+                    stroke="#CBD5E1"
+                    strokeWidth="1.2"
+                    strokeDasharray="4 4"
+                  />
+                  <text
+                    x={c.cX}
+                    y={c.cY - c.ry + 18}
+                    textAnchor="middle"
+                    fill="#475569"
+                    fontSize="11"
+                    fontWeight="700"
+                    fontFamily="var(--sans)"
+                    letterSpacing="0.04em"
+                  >
+                    LỚP {c.cid}
+                  </text>
+                </g>
+              ))}
+
+              {/* Network Edges */}
               {visibleEdges.map((e, idx) => {
                 const s = nodePositions.get(e.source);
                 const t = nodePositions.get(e.target);
                 if (!s || !t) return null;
 
                 const isConnected = selectedNode && (e.source === selectedNode.id || e.target === selectedNode.id);
-                const strokeWidth = isConnected ? 2.5 : Math.max(0.6, (e.sheaf_alpha || 0.15) * 3);
-                const strokeColor = isConnected ? "#1E3A8A" : "#CBD5E1";
+                const alphaVal = e.sheaf_alpha || 0.15;
+                const strokeWidth = isConnected ? 3.0 : Math.max(0.7, alphaVal * 3.2);
+                const strokeColor = isConnected ? "#1E3A8A" : (alphaVal >= 0.5 ? "#64748B" : "#CBD5E1");
+                const strokeOpacity = selectedNode ? (isConnected ? 0.95 : 0.08) : Math.max(0.25, alphaVal);
+
+                const midX = (s.x + t.x) / 2;
+                const midY = (s.y + t.y) / 2;
 
                 return (
-                  <line
-                    key={idx}
-                    x1={s.x}
-                    y1={s.y}
-                    x2={t.x}
-                    y2={t.y}
-                    stroke={strokeColor}
-                    strokeWidth={strokeWidth}
-                    strokeOpacity={isConnected ? 0.9 : 0.45}
-                  />
+                  <g key={idx}>
+                    <line
+                      x1={s.x}
+                      y1={s.y}
+                      x2={t.x}
+                      y2={t.y}
+                      stroke={strokeColor}
+                      strokeWidth={strokeWidth}
+                      strokeOpacity={strokeOpacity}
+                    />
+                    {isConnected && (
+                      <g>
+                        <rect
+                          x={midX - 20}
+                          y={midY - 9}
+                          width={40}
+                          height={17}
+                          rx={4}
+                          fill="#1E3A8A"
+                        />
+                        <text
+                          x={midX}
+                          y={midY + 3.5}
+                          textAnchor="middle"
+                          fill="#FFFFFF"
+                          fontSize="9"
+                          fontWeight="700"
+                          fontFamily="var(--mono)"
+                        >
+                          &alpha; {alphaVal.toFixed(2)}
+                        </text>
+                      </g>
+                    )}
+                  </g>
                 );
               })}
 
-              {/* Nodes */}
+              {/* Network Nodes */}
               {Array.from(nodePositions.values()).map(({ x, y, node }) => {
                 const isSelected = selectedNode && selectedNode.id === node.id;
+                const isPeer = selectedPeers.some((p) => p.peerId === node.id);
                 const meta = getLevelMeta(node.risk_level);
+                const r = isSelected ? 14 : (isPeer ? 11 : 9);
 
                 return (
                   <g
@@ -1142,32 +1620,100 @@ function GraphNetworkTab({ graphData, onSelectStudent }) {
                     onClick={() => setSelectedNode(node)}
                     style={{ cursor: "pointer" }}
                   >
+                    {/* Glowing Ring for Selected Node */}
+                    {isSelected && (
+                      <circle
+                        cx={x}
+                        cy={y}
+                        r={23}
+                        fill="none"
+                        stroke="#1E3A8A"
+                        strokeWidth="2.5"
+                        strokeDasharray="4 2"
+                        opacity="0.85"
+                      />
+                    )}
+
+                    {/* Double Ring for TT08 Rule Triggered */}
+                    {node.rule_triggered === 1 && (
+                      <circle
+                        cx={x}
+                        cy={y}
+                        r={r + 3.5}
+                        fill="none"
+                        stroke="#991B1B"
+                        strokeWidth="1.8"
+                        strokeDasharray="3 2"
+                      />
+                    )}
+
+                    {/* Main Node Circle */}
                     <circle
                       cx={x}
                       cy={y}
-                      r={isSelected ? 11 : 7.5}
+                      r={r}
                       fill={meta.color}
                       stroke={isSelected ? "#0F172A" : "#FFFFFF"}
-                      strokeWidth={isSelected ? 3 : 1.5}
+                      strokeWidth={isSelected ? 3 : 1.8}
                     />
-                    <text
-                      x={x}
-                      y={y - 10}
-                      textAnchor="middle"
-                      className="node-label"
-                      fill={isSelected ? "#0F172A" : "#475569"}
-                    >
-                      {node.id}
-                    </text>
+
+                    {/* Node Monospace Label */}
+                    {(showLabels || isSelected || isPeer) && (
+                      <g>
+                        <rect
+                          x={x - 18}
+                          y={y + r + 2}
+                          width={36}
+                          height={13}
+                          rx={2}
+                          fill="rgba(255, 255, 255, 0.88)"
+                        />
+                        <text
+                          x={x}
+                          y={y + r + 12}
+                          textAnchor="middle"
+                          className="node-label"
+                          fill={isSelected ? "#0F172A" : (node.risk_level === "HIGH_RISK" ? "#991B1B" : "#334155")}
+                          fontWeight={isSelected ? "700" : "600"}
+                        >
+                          {node.id}
+                        </text>
+                      </g>
+                    )}
                   </g>
                 );
               })}
-            </svg>
+            </g>
+          </svg>
+
+          {/* Floating Legend */}
+          <div className="graph-legend-overlay">
+            <div style={{ fontWeight: 700, marginBottom: "4px", color: "var(--ink)" }}>Chú giải mạng Sheaf</div>
+            <div className="graph-legend-item">
+              <span className="graph-legend-dot" style={{ background: "#991B1B" }}></span>
+              <span>Nguy cơ cao (HIGH_RISK)</span>
+            </div>
+            <div className="graph-legend-item">
+              <span className="graph-legend-dot" style={{ background: "#D97706" }}></span>
+              <span>Cần chú ý (ATTENTION)</span>
+            </div>
+            <div className="graph-legend-item">
+              <span className="graph-legend-dot" style={{ background: "#059669" }}></span>
+              <span>Bình thường (NORMAL)</span>
+            </div>
+            <div className="graph-legend-item">
+              <span style={{ display: "inline-block", width: "10px", height: "10px", border: "1.5px dashed #991B1B", borderRadius: "50%" }}></span>
+              <span>Vi phạm Điều 11 TT08 (Con dấu đôi)</span>
+            </div>
+            <div className="graph-legend-item">
+              <span style={{ display: "inline-block", width: "14px", height: "3px", background: "#1E3A8A" }}></span>
+              <span>Liên kết chú ý cao &alpha;<sub>vu</sub> &ge; 0.50</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Selected Node Details Sidecard */}
+      {/* Right Column: Node Details & Cross-links & Academic Mechanics */}
       <div>
         <div className="card">
           <h2>Chi tiết Nút mạng đã chọn</h2>
@@ -1179,18 +1725,90 @@ function GraphNetworkTab({ graphData, onSelectStudent }) {
                   {getLevelMeta(selectedNode.risk_level).label}
                 </span>
               </div>
-              <p><strong>Họ tên:</strong> {selectedNode.label}</p>
-              <p><strong>Lớp:</strong> {selectedNode.class_id}</p>
-              <p><strong>ĐTB Tích lũy:</strong> {Number(selectedNode.gpa).toFixed(2)}</p>
+              <p><strong>Họ và tên:</strong> {selectedNode.label}</p>
+              <p><strong>Lớp sinh hoạt:</strong> {selectedNode.class_id}</p>
+              <p><strong>ĐTB Tích lũy:</strong> {Number(selectedNode.gpa || 0).toFixed(2)}</p>
+              <p><strong>ĐTB Học kỳ 2025_HK2:</strong> {selectedNode.gpa_semester != null ? Number(selectedNode.gpa_semester).toFixed(2) : "--"}</p>
+              <p><strong>Tín chỉ nợ đọng:</strong> {selectedNode.accumulated_debt_credits || 0} TC</p>
+              <p><strong>Xác suất nguy cơ (GNN):</strong> {Math.round(selectedNode.risk_score || 0)}%</p>
 
-              <button
-                type="button"
-                className="primary"
-                style={{ width: "100%", marginTop: "12px" }}
-                onClick={() => onSelectStudent(selectedNode.id)}
-              >
-                Mở Phiếu Đánh Giá Đầy Đủ (M03)
-              </button>
+              {selectedNode.rule_triggered === 1 && (
+                <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#991B1B", padding: "6px 10px", borderRadius: "6px", fontSize: ".8rem", marginBottom: "12px", fontWeight: 600 }}>
+                  ⚠️ Đã chạm ngưỡng cảnh báo Điều 11 Thông tư 08/2021
+                </div>
+              )}
+
+              {/* Top Connected Peers in Sheaf Network */}
+              <div style={{ marginTop: "14px" }}>
+                <label>Nhóm học tập liên kết trực tiếp (Sheaf Attention):</label>
+                {selectedPeers.length > 0 ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "6px" }}>
+                    {selectedPeers.map((p) => (
+                      <div
+                        key={p.peerId}
+                        onClick={() => setSelectedNode(p.node)}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          padding: "6px 8px",
+                          background: "#F8FAFC",
+                          border: "1px solid var(--line)",
+                          borderRadius: "6px",
+                          cursor: "pointer",
+                          fontSize: ".8rem",
+                        }}
+                        title="Nhấp để chuyển tiêu điểm sang sinh viên này"
+                      >
+                        <div>
+                          <strong>{p.peerId}</strong> · {p.node.label || p.peerId}
+                        </div>
+                        <span className="badge" style={{ background: "#EFF6FF", color: "#1E3A8A", border: "1px solid #BFDBFE" }}>
+                          &alpha; {p.alpha.toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="hint" style={{ margin: "4px 0" }}>Chưa có cạnh chú ý vượt ngưỡng trong phân lớp hiện hành.</p>
+                )}
+              </div>
+
+              {/* 4 Unified Cross-Linking Buttons */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "16px" }}>
+                <button
+                  type="button"
+                  className="primary"
+                  style={{ width: "100%" }}
+                  onClick={() => onSelectStudent(selectedNode.id)}
+                >
+                  📄 Mở Phiếu Đánh Giá Cá Nhân (M03)
+                </button>
+                <button
+                  type="button"
+                  className="graph-btn"
+                  style={{ width: "100%", justifyContent: "center" }}
+                  onClick={() => onOpenIntervention(selectedNode.id)}
+                >
+                  ✍️ Lập Biên Bản Can Thiệp (M08)
+                </button>
+                <button
+                  type="button"
+                  className="graph-btn"
+                  style={{ width: "100%", justifyContent: "center" }}
+                  onClick={() => onFilterInCohort(selectedNode.id)}
+                >
+                  🔍 Xem Trong Danh Sách Toàn Khóa (M05)
+                </button>
+                <button
+                  type="button"
+                  className="chip-btn"
+                  style={{ width: "100%", justifyContent: "center", textAlign: "center" }}
+                  onClick={() => onAskCopilot(`Hồ sơ sinh viên ${selectedNode.id} (${selectedNode.label || ""}) có những nguy cơ học vụ nào và hướng khắc phục theo Thông tư 08?`)}
+                >
+                  💬 Hỏi Copilot Về Sinh Viên Này
+                </button>
+              </div>
             </div>
           ) : (
             <p className="hint">Nhấp vào một nút trên đồ thị để xem thông tin chi tiết và trọng số Sheaf.</p>
@@ -1199,8 +1817,11 @@ function GraphNetworkTab({ graphData, onSelectStudent }) {
 
         <div className="card">
           <h2>Cơ chế Sheaf Attention Networks</h2>
-          <p className="hint" style={{ lineHeight: "1.6" }}>
-            Trong môi trường đào tạo tín chỉ, sinh viên khá và sinh viên yếu cùng làm việc nhóm là quan hệ dị thể (heterophily). Mô hình Sheaf gán mỗi cạnh một ánh xạ hạn chế học được F<sub>ve</sub><sup>T</sup> F<sub>ue</sub> và trọng số chú ý &alpha;<sub>vu</sub>, triệt tiêu hiện tượng over-smoothing để phát hiện sớm sinh viên có nguy cơ rớt môn.
+          <div style={{ fontFamily: "var(--mono)", background: "#F8FAFC", padding: "8px 10px", borderRadius: "6px", fontSize: ".82rem", border: "1px solid var(--line)", margin: "8px 0" }}>
+            E(x) = &sum;<sub>v&sim;u</sub> &alpha;<sub>vu</sub> ||F<sub>ve</sub> x<sub>v</sub> - F<sub>ue</sub> x<sub>u</sub>||<sup>2</sup>
+          </div>
+          <p className="hint" style={{ lineHeight: "1.6", margin: "8px 0 0" }}>
+            Trong môi trường đào tạo tín chỉ, sinh viên khá và sinh viên yếu cùng làm việc nhóm tạo thành quan hệ dị thể (heterophily). Đồ thị GNN phẳng gây hiện tượng over-smoothing (bình quân hóa điểm). Sheaf Neural Network gán mỗi cạnh một ánh xạ hạn chế học được F<sub>ve</sub><sup>T</sup> F<sub>ue</sub> và trọng số chú ý &alpha;<sub>vu</sub>, giúp phát hiện sớm nguy cơ trước khi sinh viên trượt môn.
           </p>
         </div>
       </div>
@@ -1209,14 +1830,19 @@ function GraphNetworkTab({ graphData, onSelectStudent }) {
 }
 
 // ============================================================================
-// TAB 5: M08 & M09 INTERVENTIONS & DATA IMPORT
+// 9. TAB 5: M08 & M09 INTERVENTIONS CRUD & DATA IMPORT
 // ============================================================================
-function InterventionsTab({ interventions, onAddIntervention, onUploadCsv }) {
+function InterventionsTab({
+  interventions,
+  onAddIntervention,
+  onOpenEditIntervention,
+  onDeleteIntervention,
+  onUploadCsv,
+}) {
   const [sid, setSid] = useState("SV002");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [itype, setItype] = useState("Gặp trực tiếp");
   const [notes, setNotes] = useState("");
-  const [outcome, setOutcome] = useState("Theo dõi");
+  const [outcome, setOutcome] = useState("SCHEDULED");
   const [csvContent, setCsvContent] = useState("");
   const [importReport, setImportReport] = useState(null);
 
@@ -1224,10 +1850,9 @@ function InterventionsTab({ interventions, onAddIntervention, onUploadCsv }) {
     e.preventDefault();
     onAddIntervention({
       student_id: sid,
-      intervention_date: date,
-      intervention_type: itype,
+      meeting_date: date,
       notes,
-      outcome,
+      outcome_status: outcome,
     });
     setNotes("");
   };
@@ -1244,10 +1869,9 @@ function InterventionsTab({ interventions, onAddIntervention, onUploadCsv }) {
 
   return (
     <div className="grid2">
-      {/* M08: Intervention History & Form */}
       <div>
         <div className="card">
-          <h2>M08 · Ghi nhận can thiệp của Cố vấn học tập</h2>
+          <h2>M08 · Tạo Biên bản Can thiệp CVHT Mới (Create)</h2>
           <p className="hint">Ghi nhận biên bản làm việc, lịch hẹn và giải pháp hỗ trợ sinh viên có nguy cơ.</p>
           <form onSubmit={handleSubmit}>
             <div className="row">
@@ -1260,27 +1884,16 @@ function InterventionsTab({ interventions, onAddIntervention, onUploadCsv }) {
                 <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
               </div>
             </div>
-            <div className="row">
-              <div>
-                <label>Hình thức can thiệp:</label>
-                <select value={itype} onChange={(e) => setItype(e.target.value)}>
-                  <option value="Gặp trực tiếp">Gặp trực tiếp tại văn phòng</option>
-                  <option value="Trao đổi trực tuyến">Trao đổi qua Google Meet / MS Teams</option>
-                  <option value="Email thông báo">Gửi thông báo qua Email</option>
-                  <option value="Liên hệ gia đình">Liên hệ phụ huynh / gia đình</option>
-                </select>
-              </div>
-              <div>
-                <label>Kết quả theo dõi:</label>
-                <select value={outcome} onChange={(e) => setOutcome(e.target.value)}>
-                  <option value="Theo dõi">Tiếp tục theo dõi tiến độ</option>
-                  <option value="Đăng ký học lại">Đã hướng dẫn đăng ký học lại</option>
-                  <option value="Cải thiện">Có chuyển biến tích cực</option>
-                  <option value="Đề xuất thôi học">Đề xuất xử lý buộc thôi học</option>
-                </select>
-              </div>
-            </div>
             <div style={{ marginBottom: "10px" }}>
+              <label>Kết quả / Trạng thái theo dõi:</label>
+              <select value={outcome} onChange={(e) => setOutcome(e.target.value)}>
+                <option value="SCHEDULED">Đã lên lịch hẹn (Scheduled)</option>
+                <option value="IN_PROGRESS">Đang theo dõi cải thiện (In Progress)</option>
+                <option value="RESOLVED">Đã cải thiện / Thoát cảnh báo (Resolved)</option>
+                <option value="DISMISSAL_PROPOSED">Đề xuất xử lý buộc thôi học (Dismissal Proposed)</option>
+              </select>
+            </div>
+            <div style={{ marginBottom: "12px" }}>
               <label>Nội dung làm việc &amp; Cam kết của sinh viên:</label>
               <textarea
                 rows="3"
@@ -1290,41 +1903,62 @@ function InterventionsTab({ interventions, onAddIntervention, onUploadCsv }) {
                 required
               />
             </div>
-            <button type="submit" className="primary">Ghi nhận biên bản can thiệp</button>
+            <button type="submit" className="primary">Lưu biên bản can thiệp (Create)</button>
           </form>
         </div>
 
         <div className="card">
-          <h2>Lịch sử can thiệp gần đây</h2>
+          <h2>Lịch sử Can thiệp &amp; Quản lý CRUD (Read, Update, Delete)</h2>
+          <p className="hint">Danh sách các buổi làm việc được lưu vết kiểm toán theo Nghị định 13/2023/NĐ-CP.</p>
           <table className="data">
             <thead>
               <tr>
+                <th>ID</th>
                 <th>Ngày</th>
                 <th>Mã SV</th>
-                <th>Hình thức</th>
-                <th>Kết quả</th>
+                <th>Trạng thái</th>
                 <th>Nội dung</th>
+                <th>Thao tác CRUD</th>
               </tr>
             </thead>
             <tbody>
-              {list.slice(0, 8).map((it, idx) => (
-                <tr key={idx}>
-                  <td>{it.meeting_date || it.intervention_date}</td>
+              {list.map((it) => (
+                <tr key={it.intervention_id}>
+                  <td><code>#{it.intervention_id}</code></td>
+                  <td>{it.meeting_date}</td>
                   <td><strong>{it.student_id}</strong></td>
-                  <td>{it.intervention_type}</td>
-                  <td><span className="badge b-mid">{it.outcome}</span></td>
+                  <td><span className="badge b-mid">{it.outcome_status}</span></td>
                   <td>{it.notes}</td>
+                  <td>
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      <button
+                        type="button"
+                        className="btn-edit"
+                        onClick={() => onOpenEditIntervention(it)}
+                        title="Chỉnh sửa biên bản can thiệp"
+                      >
+                        ✏️ Sửa
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-delete"
+                        onClick={() => onDeleteIntervention(it.intervention_id)}
+                        title="Xóa biên bản này khỏi CSDL"
+                      >
+                        🗑️ Xóa
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
               {list.length === 0 && (
-                <tr><td colSpan="5" className="hint">Chưa có lịch sử can thiệp nào.</td></tr>
+                <tr><td colSpan="6" className="hint">Chưa có lịch sử can thiệp nào.</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* M09: Data Import & Row-level Validation */}
       <div>
         <div className="card">
           <h2>M09 · Nhập dữ liệu học kỳ &amp; Kiểm tra hợp lệ từng dòng</h2>
@@ -1347,10 +1981,10 @@ function InterventionsTab({ interventions, onAddIntervention, onUploadCsv }) {
                 type="button"
                 className="small"
                 onClick={() => setCsvContent(
-                  `student_id,semester,gpa_term,gpa_cumulative,failed_credits\nSV002,2025_HK2,1.35,1.88,6\nSV003,2025_HK2,0.85,1.10,14\nSV099,2025_HK2,9.99,1.50,-2`
+                  `student_id,registered_credits,failed_credits,gpa_semester,gpa_cumulative,accumulated_debt_credits\nSV002,15,3,1.60,2.20,10\nSV003,13,7,0.90,1.25,21`
                 )}
               >
-                Chèn mẫu kiểm thử (Có lỗi)
+                Chèn mẫu kiểm thử hợp lệ
               </button>
             </div>
           </form>
@@ -1358,11 +1992,11 @@ function InterventionsTab({ interventions, onAddIntervention, onUploadCsv }) {
           {importReport && (
             <div className={`import-result ${importReport.status === "ok" ? "res-ok" : "res-err"}`}>
               <h4>Kết quả kiểm định dữ liệu (Row-level Validation):</h4>
-              <p>Tổng số dòng: <strong>{importReport.total_rows}</strong> · Hợp lệ: <strong>{importReport.valid_rows}</strong> · Lỗi: <strong>{importReport.error_rows}</strong></p>
+              <p>Tổng số dòng: <strong>{importReport.total_rows_read || importReport.total_rows}</strong> · Hợp lệ: <strong>{importReport.valid_count || importReport.valid_rows}</strong> · Cập nhật CSDL: <strong>{importReport.updated_in_db || 0}</strong></p>
               {importReport.errors && importReport.errors.length > 0 && (
                 <ul>
                   {importReport.errors.map((err, i) => (
-                    <li key={i}><strong>Dòng {err.line}:</strong> {err.message}</li>
+                    <li key={i}><strong>Dòng {err.line}:</strong> {err.error || err.message}</li>
                   ))}
                 </ul>
               )}
@@ -1375,93 +2009,156 @@ function InterventionsTab({ interventions, onAddIntervention, onUploadCsv }) {
 }
 
 // ============================================================================
-// TAB 6: M10 & M11 REGULATIONS & MODEL BENCHMARK
+// 10. TAB 6: M10 & M11 REGULATIONS & BENCHMARK
 // ============================================================================
-function AdminTab({ rules, models, onActivateModel }) {
+function AdminTab({
+  rules,
+  models,
+  onActivateModel,
+  onOpenEditRule,
+  onReevaluateRules,
+  onViewViolations,
+  onShowRuleInfo,
+  canEditRules,
+  reevaluating,
+}) {
   const ruleList = Array.isArray(rules) ? rules : [];
   const modelList = Array.isArray(models) ? models : [];
 
   return (
-    <div className="grid2">
-      {/* M10: Regulation Config */}
-      <div>
-        <div className="card">
-          <h2>M10 · Cấu hình tham số Quy chế Đào tạo (Thông tư 08/2021)</h2>
-          <p className="hint">
-            Các tham số cảnh báo và buộc thôi học được cấu hình động theo niên khóa và quy chế của Trường Đại học Mở TP.HCM.
-          </p>
-          <table className="data">
-            <thead>
-              <tr>
-                <th>Mã điều</th>
-                <th>Mô tả quy chế</th>
-                <th>Giá trị ngưỡng</th>
-                <th>Đơn vị</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ruleList.map((r) => (
-                <tr key={r.rule_code}>
-                  <td><strong>{r.rule_code}</strong></td>
-                  <td>{r.description}</td>
-                  <td><span className="badge b-bad">{r.threshold}</span></td>
-                  <td>{r.unit}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+    <div>
+      <div className="card">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "14px" }}>
+          <div>
+            <h2 style={{ margin: "0 0 4px" }}>M10 · Cấu hình tham số Quy chế Đào tạo (Thông tư 08/2021/TT-BGDĐT)</h2>
+            <p className="hint" style={{ margin: 0 }}>
+              Các tham số cảnh báo và buộc thôi học được cấu hình động theo niên khóa và quy chế Trường Đại học Mở TP.HCM.
+            </p>
+          </div>
+          <div>
+            <button
+              type="button"
+              className="btn-reevaluate-hero"
+              disabled={reevaluating}
+              onClick={onReevaluateRules}
+              title="Chạy đối soát toàn diện 180 sinh viên theo các quy tắc hiện hành"
+            >
+              {reevaluating ? "⏳ Đang đối soát 180 sinh viên..." : "⚡ Chạy đối soát lại toàn trường ngay"}
+            </button>
+          </div>
         </div>
+
+        <table className="data">
+          <thead>
+            <tr>
+              <th>Mã điều</th>
+              <th>Căn cứ pháp lý</th>
+              <th>Mô tả quy chế</th>
+              <th>Giá trị ngưỡng</th>
+              <th>Đơn vị tính</th>
+              <th>Số SV vi phạm hiện tại</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ruleList.map((r) => (
+              <tr key={r.rule_code}>
+                <td>
+                  <strong>{r.rule_code}</strong>
+                  <button
+                    type="button"
+                    className="info-icon-btn"
+                    onClick={() => onShowRuleInfo(r)}
+                    title="Nhấp để xem giải thích chi tiết điều khoản pháp lý"
+                  >
+                    i
+                  </button>
+                </td>
+                <td style={{ fontSize: ".82rem", color: "var(--stamp-blue)", fontWeight: 500 }}>
+                  {r.legal_ref}
+                </td>
+                <td>{r.rule_name}</td>
+                <td>
+                  <span className="rule-param-badge">
+                    {r.formatted_threshold || JSON.stringify(r.params)}
+                  </span>
+                </td>
+                <td style={{ fontSize: ".82rem", color: "var(--ink-muted)" }}>
+                  {r.unit || "Tiêu chí"}
+                </td>
+                <td>
+                  <span
+                    className={`rule-violation-pill ${(r.violation_count || 0) > 0 ? "has-viol" : "no-viol"}`}
+                    onClick={() => onViewViolations(r)}
+                    title="Nhấp để xem danh sách sinh viên vi phạm hoặc lọc trong Cohort"
+                  >
+                    {(r.violation_count || 0) > 0 ? `⚠️ ${r.violation_count} SV vi phạm` : "✓ Đạt chuẩn (0 SV)"}
+                  </span>
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    className="btn-edit"
+                    disabled={!canEditRules}
+                    onClick={() => onOpenEditRule(r)}
+                    title={canEditRules ? "Hiệu chỉnh tham số ngưỡng quy chế" : "Chỉ Phòng Quản lý Đào tạo mới có thẩm quyền chỉnh sửa quy chế"}
+                    style={!canEditRules ? { opacity: 0.5, cursor: "not-allowed" } : {}}
+                  >
+                    ✏️ Sửa ngưỡng
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
-      {/* M11: Model Benchmark & Permutation Test */}
-      <div>
-        <div className="card">
-          <h2>M11 · Đối sánh hiệu năng 6 Mô hình (Benchmarking)</h2>
-          <p className="hint">
-            Đối sánh với mô hình cơ sở bảng và kiểm định hoán vị nhãn (Permutation Test) 5 seed chống rò rỉ dữ liệu.
-          </p>
-          <table className="data">
-            <thead>
-              <tr>
-                <th>Mô hình</th>
-                <th>Macro-F1</th>
-                <th>Recall Nhóm Đỏ</th>
-                <th>PR-AUC</th>
-                <th>MAE (GPA)</th>
-                <th>Permutation p-val</th>
-                <th>Trạng thái</th>
+      <div className="card">
+        <h2>M11 · Đối sánh hiệu năng 6 Mô hình (Benchmarking)</h2>
+        <p className="hint">
+          Đối sánh với mô hình cơ sở bảng và kiểm định hoán vị nhãn (Permutation Test) 5 seed chống rò rỉ dữ liệu.
+        </p>
+        <table className="data">
+          <thead>
+            <tr>
+              <th>Mô hình</th>
+              <th>Macro-F1</th>
+              <th>Recall Nhóm Đỏ</th>
+              <th>PR-AUC</th>
+              <th>MAE (GPA)</th>
+              <th>Permutation p-val</th>
+              <th>Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody>
+            {modelList.map((m) => (
+              <tr key={m.run_id} style={{ background: m.is_active ? "#EFF6FF" : "transparent" }}>
+                <td><strong>{m.model_name}</strong> {m.is_active && "★ (Active)"}</td>
+                <td>{Number(m.macro_f1).toFixed(3)}</td>
+                <td>{Number(m.recall_high_risk).toFixed(3)}</td>
+                <td>{Number(m.pr_auc).toFixed(3)}</td>
+                <td>{Number(m.gpa_mae || m.mae_gpa || 0.12).toFixed(3)}</td>
+                <td><span className="badge b-ok">{m.permutation_p_value || "< 0.001"}</span></td>
+                <td>
+                  {m.is_active ? (
+                    <span className="badge b-ok">Đang chạy</span>
+                  ) : (
+                    <button type="button" className="small" onClick={() => onActivateModel(m.run_id)}>
+                      Kích hoạt
+                    </button>
+                  )}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {modelList.map((m) => (
-                <tr key={m.run_id} style={{ background: m.is_active ? "#EFF6FF" : "transparent" }}>
-                  <td><strong>{m.model_name}</strong> {m.is_active && "★ (Active)"}</td>
-                  <td>{Number(m.macro_f1).toFixed(3)}</td>
-                  <td>{Number(m.recall_high_risk).toFixed(3)}</td>
-                  <td>{Number(m.pr_auc).toFixed(3)}</td>
-                  <td>{Number(m.gpa_mae || m.mae_gpa || 0.12).toFixed(3)}</td>
-                  <td><span className="badge b-ok">{m.permutation_p_value || "< 0.001"}</span></td>
-                  <td>
-                    {m.is_active ? (
-                      <span className="badge b-ok">Đang chạy</span>
-                    ) : (
-                      <button type="button" className="small" onClick={() => onActivateModel(m.run_id)}>
-                        Kích hoạt
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
 }
 
 // ============================================================================
-// TAB 7: ADVISOR COPILOT (RAG + TEXT-TO-SQL)
+// 11. TAB 7: ADVISOR COPILOT
 // ============================================================================
 function AdvisorCopilotTab() {
   const [query, setQuery] = useState("");
@@ -1520,9 +2217,10 @@ function AdvisorCopilotTab() {
 
   const chips = [
     "Điều kiện cảnh báo học tập và buộc thôi học theo Thông tư 08?",
+    "sinh viên a03 bị vấn đề làm sao khắc phục",
+    "Trường hợp nào sinh viên bị cảnh báo học tập lần thứ hai?",
     "Danh sách sinh viên nợ trên 10 tín chỉ lớp DH23CS01",
     "Vì sao sinh viên SV002 bị xếp vào mức Cần chú ý?",
-    "Trường hợp nào sinh viên bị cảnh báo học tập lần thứ hai?",
   ];
 
   return (
@@ -1532,7 +2230,6 @@ function AdvisorCopilotTab() {
         Hệ thống truy xuất tăng cường (RAG) trích dẫn trực tiếp Điều 11 Thông tư 08/2021/TT-BGDĐT và sinh câu lệnh SQL chỉ đọc (Read-only) có kiểm soát.
       </p>
 
-      {/* Suggestion Chips */}
       <div className="copilot-chips">
         {chips.map((chip, idx) => (
           <button key={idx} type="button" className="chip-btn" onClick={() => handleSend(chip)}>
@@ -1541,11 +2238,10 @@ function AdvisorCopilotTab() {
         ))}
       </div>
 
-      {/* Chat Messages Log */}
       <div className="chat-window">
         {messages.map((m, idx) => (
           <div key={idx} className={`chat-bubble ${m.sender}`}>
-            <div className="chat-text">{m.text}</div>
+            <div className="chat-text" style={{ whiteSpace: "pre-wrap" }}>{m.text}</div>
             {m.citation && (
               <div className="chat-citation">
                 <strong>Căn cứ pháp lý:</strong> {m.citation}
@@ -1561,7 +2257,6 @@ function AdvisorCopilotTab() {
         {loading && <div className="chat-bubble bot hint">Copilot đang phân tích quy chế...</div>}
       </div>
 
-      {/* Input row */}
       <div className="chat-input-row">
         <input
           type="text"
@@ -1577,7 +2272,7 @@ function AdvisorCopilotTab() {
 }
 
 // ============================================================================
-// TAB 8: HEXAGONAL ARCHITECTURE & GATEWAY TELEMETRY
+// 12. TAB 8: HEXAGONAL ARCHITECTURE & GATEWAY
 // ============================================================================
 function HexagonalTab({ bffTelemetry, onResetCircuitBreaker }) {
   return (
@@ -1617,7 +2312,6 @@ function HexagonalTab({ bffTelemetry, onResetCircuitBreaker }) {
         </div>
       </div>
 
-      {/* Circuit Breaker & Telemetry State */}
       <div className="card">
         <h2>Giám sát Sức chịu tải Gateway (Node.js Circuit Breaker State)</h2>
         <p className="hint">
@@ -1674,12 +2368,452 @@ function HexagonalTab({ bffTelemetry, onResetCircuitBreaker }) {
 }
 
 // ============================================================================
-// MAIN APP COMPONENT (ORCHESTRATOR)
+// 13. MODALS FOR FULL CRUD (STUDENTS, INTERVENTIONS, RULES)
+// ============================================================================
+function EditStudentModal({ student, onClose, onSave }) {
+  const [gpaSem, setGpaSem] = useState(student.gpa_semester || 2.0);
+  const [gpaCum, setGpaCum] = useState(student.gpa_cumulative || 2.0);
+  const [failedCr, setFailedCr] = useState(student.failed_credits || 0);
+  const [debtCr, setDebtCr] = useState(student.failed_credits_cumulative || 0);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave(student.student_id, {
+      gpa_semester: parseFloat(gpaSem),
+      gpa_cumulative: parseFloat(gpaCum),
+      failed_credits: parseInt(failedCr, 10),
+      accumulated_debt_credits: parseInt(debtCr, 10),
+    });
+  };
+
+  return (
+    <div className="modal-backdrop">
+      <div className="modal-box">
+        <div className="modal-header">
+          <h3>✏️ Cập Nhật Điểm Học Kỳ Sinh Viên (CRUD Student)</h3>
+          <button type="button" className="modal-close-btn" onClick={onClose}>✕</button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            <p className="hint">
+              Hồ sơ: <strong>{student.student_id} — {student.student_name}</strong> ({student.class_id}).
+              Khi lưu, hệ thống tự động chạy lại Rule Engine và Sheaf Attention GNN để cập nhật mức nguy cơ mới.
+            </p>
+            <div className="row">
+              <div>
+                <label>ĐTB Học kỳ gần nhất (0.0 – 4.0):</label>
+                <input
+                  type="number"
+                  step="0.05"
+                  min="0"
+                  max="4"
+                  value={gpaSem}
+                  onChange={(e) => setGpaSem(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label>ĐTB Tích lũy (0.0 – 4.0):</label>
+                <input
+                  type="number"
+                  step="0.05"
+                  min="0"
+                  max="4"
+                  value={gpaCum}
+                  onChange={(e) => setGpaCum(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div className="row">
+              <div>
+                <label>Số tín chỉ không đạt trong kỳ:</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="30"
+                  value={failedCr}
+                  onChange={(e) => setFailedCr(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label>Tổng tín chỉ nợ đọng tích lũy:</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="60"
+                  value={debtCr}
+                  onChange={(e) => setDebtCr(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="small" onClick={onClose}>Hủy bỏ</button>
+            <button type="submit" className="primary">Lưu &amp; Tái Tính Toán Rủi Ro</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function EditInterventionModal({ intervention, onClose, onSave }) {
+  const [date, setDate] = useState(intervention.meeting_date || "");
+  const [outcome, setOutcome] = useState(intervention.outcome_status || "SCHEDULED");
+  const [notes, setNotes] = useState(intervention.notes || "");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave(intervention.intervention_id, {
+      meeting_date: date,
+      outcome_status: outcome,
+      notes,
+    });
+  };
+
+  return (
+    <div className="modal-backdrop">
+      <div className="modal-box">
+        <div className="modal-header">
+          <h3>✏️ Chỉnh Sửa Biên Bản Can Thiệp #{intervention.intervention_id}</h3>
+          <button type="button" className="modal-close-btn" onClick={onClose}>✕</button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            <p className="hint">Sinh viên: <strong>{intervention.student_id}</strong> · Cố vấn học tập: <strong>{intervention.advisor_name}</strong></p>
+            <div className="row">
+              <div>
+                <label>Ngày làm việc:</label>
+                <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+              </div>
+              <div>
+                <label>Kết quả / Trạng thái:</label>
+                <select value={outcome} onChange={(e) => setOutcome(e.target.value)}>
+                  <option value="SCHEDULED">Đã lên lịch hẹn (Scheduled)</option>
+                  <option value="IN_PROGRESS">Đang theo dõi cải thiện (In Progress)</option>
+                  <option value="RESOLVED">Đã cải thiện / Thoát cảnh báo (Resolved)</option>
+                  <option value="DISMISSAL_PROPOSED">Đề xuất xử lý buộc thôi học (Dismissal Proposed)</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label>Nội dung làm việc &amp; Biên bản:</label>
+              <textarea
+                rows="4"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="small" onClick={onClose}>Hủy bỏ</button>
+            <button type="submit" className="primary">Lưu Thay Đổi (Update)</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function EditRuleModal({ rule, onClose, onSave }) {
+  const [jsonText, setJsonText] = useState(JSON.stringify(rule.params, null, 2));
+  const [err, setErr] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    try {
+      const parsed = JSON.parse(jsonText);
+      onSave(rule.rule_code, parsed);
+    } catch (e) {
+      setErr("JSON không hợp lệ: " + e.message);
+    }
+  };
+
+  return (
+    <div className="modal-backdrop">
+      <div className="modal-box">
+        <div className="modal-header">
+          <h3>✏️ Cập Nhật Tham Số Quy Chế [{rule.rule_code}]</h3>
+          <button type="button" className="modal-close-btn" onClick={onClose}>✕</button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            <p className="hint">
+              <strong>{rule.rule_name}</strong> · Căn cứ: <em>{rule.legal_ref}</em>.
+              Khi cập nhật, toàn bộ 180 sinh viên sẽ được tái đối soát theo ngưỡng mới.
+            </p>
+            <textarea
+              rows="6"
+              style={{ fontFamily: "var(--mono)", fontSize: ".82rem" }}
+              value={jsonText}
+              onChange={(e) => { setJsonText(e.target.value); setErr(""); }}
+              required
+            />
+            {err && <p style={{ color: "#DC2626", fontSize: ".8rem", margin: "6px 0 0" }}>{err}</p>}
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="small" onClick={onClose}>Hủy bỏ</button>
+            <button type="submit" className="primary">Áp Dụng Quy Chế Mới</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function RuleDetailModal({ rule, onClose, onFilterCohort }) {
+  if (!rule) return null;
+  return (
+    <div className="modal-backdrop">
+      <div className="modal-box" style={{ maxWidth: "600px" }}>
+        <div className="modal-header">
+          <h3>ⓘ Chi Tiết Quy Chế Học Vụ [{rule.rule_code}]</h3>
+          <button type="button" className="modal-close-btn" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body">
+          <div style={{ marginBottom: "14px" }}>
+            <label>Căn cứ pháp lý:</label>
+            <div style={{ color: "var(--stamp-blue)", fontWeight: 600, fontSize: ".9rem" }}>
+              {rule.legal_ref}
+            </div>
+          </div>
+          <div style={{ marginBottom: "14px" }}>
+            <label>Tên quy chế đào tạo:</label>
+            <div style={{ fontWeight: 600 }}>{rule.rule_name}</div>
+          </div>
+          <div className="row" style={{ marginBottom: "14px" }}>
+            <div>
+              <label>Giá trị ngưỡng hiện hành:</label>
+              <div className="rule-param-badge">{rule.formatted_threshold || JSON.stringify(rule.params)}</div>
+            </div>
+            <div>
+              <label>Đơn vị tính:</label>
+              <div style={{ fontWeight: 600 }}>{rule.unit || "Tiêu chí"}</div>
+            </div>
+          </div>
+          <div style={{ marginBottom: "14px" }}>
+            <label>Giải thích chi tiết &amp; Chế tài xử lý:</label>
+            <div style={{ background: "#F8FAFC", padding: "10px 14px", borderRadius: "6px", border: "1px solid var(--line)", fontSize: ".84rem", lineHeight: "1.6" }}>
+              {rule.tooltip || rule.rule_name}
+            </div>
+          </div>
+          <div>
+            <label>Tình hình vi phạm kỳ 2025_HK2:</label>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "6px", flexWrap: "wrap", gap: "8px" }}>
+              <span className={`rule-violation-pill ${(rule.violation_count || 0) > 0 ? "has-viol" : "no-viol"}`}>
+                {(rule.violation_count || 0) > 0 ? `⚠️ ${rule.violation_count} sinh viên đang vi phạm` : "✓ 0 sinh viên vi phạm"}
+              </span>
+              {(rule.violation_count || 0) > 0 && (
+                <button
+                  type="button"
+                  className="small"
+                  onClick={() => { onClose(); onFilterCohort(rule.rule_code); }}
+                >
+                  🔍 Lọc {rule.violation_count} sinh viên này trong Cohort View
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button type="button" className="primary" onClick={onClose}>Đóng cửa sổ</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RuleViolationsModal({ rule, onClose, onSelectStudent, onFilterCohort }) {
+  if (!rule) return null;
+  const students = rule.violated_students || [];
+
+  return (
+    <div className="modal-backdrop">
+      <div className="modal-box" style={{ maxWidth: "560px" }}>
+        <div className="modal-header">
+          <h3>⚠️ Danh Sách Sinh Viên Chạm Ngưỡng [{rule.rule_code}]</h3>
+          <button type="button" className="modal-close-btn" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body">
+          <p className="hint">
+            <strong>{rule.rule_name}</strong> ({rule.legal_ref})
+          </p>
+          <p style={{ fontSize: ".84rem", margin: "0 0 10px" }}>
+            Có <strong>{rule.violation_count || students.length}</strong> sinh viên vi phạm trong học kỳ 2025_HK2:
+          </p>
+          {students.length > 0 ? (
+            <div style={{ maxHeight: "240px", overflowY: "auto", border: "1px solid var(--line)", borderRadius: "6px" }}>
+              <table className="data" style={{ margin: 0 }}>
+                <thead>
+                  <tr>
+                    <th>Mã SV</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {students.map((sid) => (
+                    <tr key={sid}>
+                      <td><strong>{sid}</strong></td>
+                      <td>
+                        <button
+                          type="button"
+                          className="small"
+                          onClick={() => { onClose(); onSelectStudent(sid); }}
+                        >
+                          📄 Mở Phiếu M03
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="hint">Không có sinh viên nào vi phạm quy tắc này.</p>
+          )}
+        </div>
+        <div className="modal-footer" style={{ justifyContent: "space-between" }}>
+          {students.length > 0 ? (
+            <button
+              type="button"
+              className="primary"
+              onClick={() => { onClose(); onFilterCohort(rule.rule_code); }}
+            >
+              🔍 Lọc cả {students.length} sinh viên trong Cohort View
+            </button>
+          ) : <span />}
+          <button type="button" className="small" onClick={onClose}>Đóng</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RoleExplanationModal({ onClose }) {
+  return (
+    <div className="modal-backdrop">
+      <div className="modal-box" style={{ maxWidth: "820px" }}>
+        <div className="modal-header">
+          <h3>🛡️ Cơ Chế Phân Quyền (RBAC) &amp; Bảo Mật Dữ Liệu Học Vụ (RLS)</h3>
+          <button type="button" className="modal-close-btn" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body">
+          <div style={{ marginBottom: "16px" }}>
+            <h4 style={{ margin: "0 0 6px", fontFamily: "var(--serif)", color: "var(--stamp-blue)" }}>
+              1. Căn cứ Pháp lý &amp; Bảo vệ Dữ liệu Cá nhân
+            </h4>
+            <ul style={{ margin: 0, paddingLeft: "20px", fontSize: ".83rem", lineHeight: "1.6", color: "var(--ink-soft)" }}>
+              <li>
+                <strong>Nghị định 13/2023/NĐ-CP</strong> về bảo vệ dữ liệu cá nhân: Dữ liệu học lực, điểm số và quá trình rèn luyện của sinh viên là dữ liệu cá nhân nhạy cảm. Hệ thống thực thi nguyên tắc đặc quyền tối thiểu (PoLP) và nguyên tắc cần biết (Need-to-Know).
+              </li>
+              <li>
+                <strong>Thông tư 08/2021/TT-BGDĐT</strong> (Điều 11): Xác định thẩm quyền độc quyền của Hội đồng Học vụ / Phòng Quản lý Đào tạo trong việc ra quyết định cảnh báo học tập hoặc buộc thôi học.
+              </li>
+            </ul>
+          </div>
+
+          <div style={{ marginBottom: "16px" }}>
+            <h4 style={{ margin: "0 0 6px", fontFamily: "var(--serif)", color: "var(--stamp-blue)" }}>
+              2. Cơ chế Row-Level Security (RLS)
+            </h4>
+            <p style={{ margin: 0, fontSize: ".83rem", lineHeight: "1.6", color: "var(--ink-soft)" }}>
+              Khi Cố vấn học tập (CVHT) đăng nhập (ví dụ: TS. Nguyễn Thị Lan phụ trách 2 lớp DH23CS01, DH23CS02), hệ thống kích hoạt bộ lọc <code>advisor_id</code> và <code>class_id</code> trực tiếp tại tầng truy vấn cơ sở dữ liệu. Dữ liệu của các lớp khác (AI, Hệ thống thông tin) sẽ bị chặn cấp dòng, ngăn ngừa triệt để nguy cơ lộ lọt dữ liệu hoặc kỳ thị kết quả học tập giữa các sinh viên.
+            </p>
+          </div>
+
+          <div>
+            <h4 style={{ margin: "0 0 8px", fontFamily: "var(--serif)", color: "var(--stamp-blue)" }}>
+              3. Ma trận Phân quyền Vai trò (RBAC Matrix)
+            </h4>
+            <table className="data" style={{ fontSize: ".8rem" }}>
+              <thead>
+                <tr>
+                  <th>Phân hệ Chức năng</th>
+                  <th>Cố vấn Học tập (ADVISOR)</th>
+                  <th>Phòng Quản lý Đào tạo (TRAINING_DEPT)</th>
+                  <th>Ban Chủ nhiệm Khoa (FACULTY_BOARD)</th>
+                  <th>Quản trị Hệ thống (ADMIN)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>M02 · Dashboard</strong></td>
+                  <td>Lớp phụ trách</td>
+                  <td>Toàn trường (180 SV)</td>
+                  <td>Toàn khoa CNTT</td>
+                  <td>Toàn hệ thống</td>
+                </tr>
+                <tr>
+                  <td><strong>M03 &amp; M04 · Hồ sơ SV</strong></td>
+                  <td>Xem &amp; Thử nghiệm What-If</td>
+                  <td>Xem &amp; Tra cứu</td>
+                  <td>Xem toàn bộ</td>
+                  <td>Toàn quyền sửa điểm</td>
+                </tr>
+                <tr>
+                  <td><strong>M05 · Cohort View</strong></td>
+                  <td>Áp dụng RLS (Chỉ lớp mình)</td>
+                  <td>Xem &amp; Lọc toàn trường</td>
+                  <td>Xem toàn khoa</td>
+                  <td>Toàn quyền CRUD</td>
+                </tr>
+                <tr>
+                  <td><strong>M06 · Đồ thị Sheaf</strong></td>
+                  <td>Đồ thị lớp phụ trách</td>
+                  <td>Đồ thị toàn trường</td>
+                  <td>Đồ thị toàn khoa</td>
+                  <td>Toàn quyền cấu hình</td>
+                </tr>
+                <tr>
+                  <td><strong>M08 · Can thiệp Học vụ</strong></td>
+                  <td>Tạo &amp; Sửa biên bản</td>
+                  <td>Phê duyệt &amp; Giám sát</td>
+                  <td>Xem báo cáo</td>
+                  <td>Toàn quyền kiểm toán</td>
+                </tr>
+                <tr>
+                  <td><strong>M10 · Cấu hình Quy chế</strong></td>
+                  <td><span className="badge b-bad">Chỉ đọc (Read-only)</span></td>
+                  <td><span className="badge b-ok">Sửa ngưỡng &amp; Đối soát</span></td>
+                  <td><span className="badge b-bad">Chỉ đọc</span></td>
+                  <td><span className="badge b-ok">Toàn quyền</span></td>
+                </tr>
+                <tr>
+                  <td><strong>M11 · Benchmark AI</strong></td>
+                  <td>Chỉ xem chỉ số</td>
+                  <td>Chỉ xem</td>
+                  <td><span className="badge b-ok">Kích hoạt Mô hình</span></td>
+                  <td>Toàn quyền</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button type="button" className="primary" onClick={onClose}>Đã hiểu chính sách</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// 14. MAIN APP COMPONENT (ORCHESTRATOR)
 // ============================================================================
 function App() {
-  const [role, setRole] = useState("ALL");
+  const [currentUsername, setCurrentUsername] = useState("cvht_lan");
+  const [userRoles, setUserRoles] = useState([]);
+  const [enforceRls, setEnforceRls] = useState(true);
+  const [roleInfoModalOpen, setRoleInfoModalOpen] = useState(false);
+
   const [activeTab, setActiveTab] = useState("dash");
   const [studentId, setStudentId] = useState("SV002");
+  const [graphSelectedSid, setGraphSelectedSid] = useState(null);
+  const [cohortInitialRuleFilter, setCohortInitialRuleFilter] = useState("ALL");
 
   // Remote data state
   const [stats, setStats] = useState(null);
@@ -1693,6 +2827,58 @@ function App() {
   const [interventions, setInterventions] = useState([]);
   const [rules, setRules] = useState([]);
   const [models, setModels] = useState([]);
+  const [reevaluatingRules, setReevaluatingRules] = useState(false);
+
+  // Modal Dialog states
+  const [editingStudent, setEditingStudent] = useState(null);
+  const [editingIntervention, setEditingIntervention] = useState(null);
+  const [editingRule, setEditingRule] = useState(null);
+  const [ruleInfoModal, setRuleInfoModal] = useState(null);
+  const [ruleViolationsModal, setRuleViolationsModal] = useState(null);
+
+  // Toast Notification state
+  const [toasts, setToasts] = useState([]);
+
+  const showToast = useCallback((message, type = "success") => {
+    const id = Date.now();
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4000);
+  }, []);
+
+  // Fetch Roles Matrix
+  const fetchRoles = useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/roles");
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.roles) && data.roles.length > 0) {
+          setUserRoles(data.roles);
+        }
+      }
+    } catch (e) {
+      console.warn("Could not load roles matrix:", e);
+    }
+  }, []);
+
+  // Active user object from roles
+  const activeUser = useMemo(() => {
+    if (userRoles.length > 0) {
+      return userRoles.find((u) => u.username === currentUsername) || userRoles[0];
+    }
+    return {
+      username: currentUsername,
+      role: currentUsername === "daotao" ? "TRAINING_DEPT" : (currentUsername === "admin" ? "ADMIN" : "ADVISOR"),
+      display_name: "TS. Nguyễn Thị Lan",
+      assigned_classes: ["DH23CS01", "DH23CS02"],
+      can_edit_rules: currentUsername === "daotao" || currentUsername === "admin",
+      can_run_pipeline: true,
+      can_manage_models: currentUsername === "bcnkhoa" || currentUsername === "admin",
+      can_intervene: true,
+      rls_enforced: currentUsername.startsWith("cvht_"),
+    };
+  }, [userRoles, currentUsername]);
 
   // Fetch Dashboard BFF Overview
   const fetchDashboardBff = useCallback(async () => {
@@ -1710,10 +2896,9 @@ function App() {
   }, []);
 
   // Fetch Cohorts list
-  const fetchCohorts = useCallback(async (currentRole) => {
+  const fetchCohorts = useCallback(async () => {
     try {
-      const url = currentRole !== "ALL" ? `/api/cohorts?advisor_id=${currentRole}` : "/api/cohorts";
-      const res = await fetch(url);
+      const res = await fetch("/api/cohorts");
       if (res.ok) {
         const data = await res.json();
         setCohorts(data.rows || data.cohorts || []);
@@ -1747,7 +2932,7 @@ function App() {
   // Fetch Graph Network
   const fetchGraph = useCallback(async () => {
     try {
-      const res = await fetch("/api/graph/network");
+      const res = await fetch("/api/graph/network?limit=180");
       if (res.ok) {
         const data = await res.json();
         setGraphData(data);
@@ -1784,26 +2969,47 @@ function App() {
 
   // Initial load
   useEffect(() => {
+    fetchRoles();
     fetchDashboardBff();
-    fetchCohorts(role);
+    fetchCohorts();
     fetchAssessment(studentId);
     fetchGraph();
     fetchAdminData();
   }, []);
 
-  // Role change handler
-  const handleRoleChange = (newRole) => {
-    setRole(newRole);
-    fetchCohorts(newRole);
+  const handleUserChange = (newUsername) => {
+    setCurrentUsername(newUsername);
+    showToast(`Đã chuyển sang vai trò: ${newUsername}`);
   };
 
-  // Quick pick handler
   const handleQuickPick = (sid) => {
     setStudentId(sid);
     fetchAssessment(sid);
   };
 
-  // Simulation handler
+  // Cross-Linking Navigation Handlers
+  const handleNavigateToStudent = (sid) => {
+    setStudentId(sid);
+    fetchAssessment(sid);
+    setActiveTab("slip");
+  };
+
+  const handleNavigateToGraph = (sid) => {
+    setGraphSelectedSid(sid);
+    setActiveTab("graph");
+  };
+
+  const handleNavigateToIntervention = (sid) => {
+    setStudentId(sid);
+    setActiveTab("ops");
+  };
+
+  const handleNavigateToCohortWithRule = (ruleCode) => {
+    setCohortInitialRuleFilter(ruleCode);
+    setActiveTab("cohort");
+  };
+
+  // What-If Simulation
   const handleSimulate = async (simPayload) => {
     if (!simPayload) {
       setSimResult(null);
@@ -1818,13 +3024,36 @@ function App() {
       if (res.ok) {
         const data = await res.json();
         setSimResult(data);
+        showToast("Đã chạy đánh giá kịch bản What-If thành công!");
       }
     } catch (e) {
-      alert("Lỗi khi chạy mô phỏng What-If: " + e.message);
+      showToast("Lỗi khi chạy mô phỏng What-If: " + e.message, "error");
     }
   };
 
-  // Add Intervention handler
+  // CRUD 1: Update Student Grades (PUT /api/students/<sid>)
+  const handleSaveStudent = async (sid, payload) => {
+    try {
+      const res = await fetch(`/api/students/${sid}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        showToast(`Đã cập nhật điểm cho sinh viên ${sid} và tái tính toán rủi ro!`);
+        setEditingStudent(null);
+        fetchCohorts();
+        fetchAssessment(sid);
+        fetchDashboardBff();
+      } else {
+        showToast("Lỗi khi cập nhật điểm sinh viên", "error");
+      }
+    } catch (e) {
+      showToast("Lỗi kết nối: " + e.message, "error");
+    }
+  };
+
+  // CRUD 2: Create Intervention (POST /api/interventions)
   const handleAddIntervention = async (itPayload) => {
     try {
       const res = await fetch("/api/interventions", {
@@ -1833,43 +3062,126 @@ function App() {
         body: JSON.stringify(itPayload),
       });
       if (res.ok) {
-        alert("Đã lưu biên bản can thiệp thành công!");
+        showToast("Đã lưu biên bản can thiệp mới vào CSDL!");
         fetchAdminData();
         fetchDashboardBff();
       }
     } catch (e) {
-      alert("Lỗi: " + e.message);
+      showToast("Lỗi: " + e.message, "error");
     }
   };
 
-  // CSV Upload handler
+  // CRUD 3: Update Intervention (PUT /api/interventions/<id>)
+  const handleSaveIntervention = async (id, payload) => {
+    try {
+      const res = await fetch(`/api/interventions/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        showToast(`Đã cập nhật biên bản can thiệp #${id}!`);
+        setEditingIntervention(null);
+        fetchAdminData();
+      }
+    } catch (e) {
+      showToast("Lỗi: " + e.message, "error");
+    }
+  };
+
+  // CRUD 4: Delete Intervention (DELETE /api/interventions/<id>)
+  const handleDeleteIntervention = async (id) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa biên bản can thiệp #${id}? Hành động này sẽ được ghi vào nhật ký kiểm toán.`)) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/interventions/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        showToast(`Đã xóa biên bản can thiệp #${id}!`);
+        fetchAdminData();
+      }
+    } catch (e) {
+      showToast("Lỗi xóa: " + e.message, "error");
+    }
+  };
+
+  // CRUD 5: Update Rule Config (PUT /api/rules/<code>)
+  const handleSaveRule = async (code, newParams) => {
+    try {
+      const res = await fetch(`/api/rules/${code}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ params: newParams }),
+      });
+      if (res.ok) {
+        showToast(`Đã cập nhật quy chế [${code}] và tái đối soát toàn trường!`);
+        setEditingRule(null);
+        fetchAdminData();
+        fetchDashboardBff();
+        fetchCohorts();
+        fetchAssessment(studentId);
+      }
+    } catch (e) {
+      showToast("Lỗi cập nhật quy chế: " + e.message, "error");
+    }
+  };
+
+  // Action: Re-evaluate All Rules (POST /api/rules/re-evaluate)
+  const handleReevaluateRules = async () => {
+    setReevaluatingRules(true);
+    try {
+      const res = await fetch("/api/rules/re-evaluate", { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        showToast(
+          `⚡ ${data.message} (${data.total_rule_triggered} sinh viên chạm quy chế TT08)!`
+        );
+        fetchAdminData();
+        fetchDashboardBff();
+        fetchCohorts();
+        fetchAssessment(studentId);
+        fetchGraph();
+      } else {
+        showToast("Lỗi khi chạy đối soát quy chế", "error");
+      }
+    } catch (e) {
+      showToast("Lỗi kết nối đối soát: " + e.message, "error");
+    } finally {
+      setReevaluatingRules(false);
+    }
+  };
+
+  // CSV Upload
   const handleUploadCsv = async (csvText, callback) => {
     try {
       const res = await fetch("/api/data/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ csv_content: csvText }),
+        body: JSON.stringify({ csv_text: csvText }),
       });
       if (res.ok) {
         const data = await res.json();
         callback(data);
+        showToast(`Đã nạp ${data.updated_in_db || 0} bản ghi thành công!`);
+        fetchDashboardBff();
+        fetchCohorts();
       }
     } catch (e) {
-      alert("Lỗi tải tệp: " + e.message);
+      showToast("Lỗi tải tệp: " + e.message, "error");
     }
   };
 
-  // Model Activate handler
+  // Model Activate
   const handleActivateModel = async (runId) => {
     try {
       const res = await fetch(`/api/models/${runId}/activate`, { method: "POST" });
       if (res.ok) {
-        alert("Đã kích hoạt mô hình thành công!");
+        showToast("Đã kích hoạt mô hình thành công!");
         fetchAdminData();
         fetchDashboardBff();
       }
     } catch (e) {
-      alert("Lỗi: " + e.message);
+      showToast("Lỗi: " + e.message, "error");
     }
   };
 
@@ -1878,28 +3190,41 @@ function App() {
     try {
       const res = await fetch("/api/gateway/circuit-breaker/reset", { method: "POST" });
       if (res.ok) {
-        alert("Đã thiết lập lại trạng thái Circuit Breaker về CLOSED.");
+        showToast("Đã đặt lại trạng thái Circuit Breaker về CLOSED.");
         fetchDashboardBff();
       }
     } catch (e) {
-      alert("Lỗi: " + e.message);
+      showToast("Lỗi: " + e.message, "error");
     }
   };
 
   return (
-    <ErrorBoundary>
+    <ErrorBoundary onReset={fetchDashboardBff}>
       <div>
         <Header
-          currentRole={role}
-          onRoleChange={handleRoleChange}
+          currentUsername={currentUsername}
+          userRoles={userRoles}
+          onUserChange={handleUserChange}
           onExportClick={() => (window.location.href = "/api/reports/export")}
+          onOpenRoleInfo={() => setRoleInfoModalOpen(true)}
         />
 
-        <NoticeBanner activeModelName={activeModel ? activeModel.model_name : null} />
+        <NoticeBanner
+          activeModelName={activeModel ? activeModel.model_name : null}
+          activeUser={activeUser}
+          enforceRls={enforceRls}
+        />
 
         <TabBar activeTab={activeTab} onTabSelect={setActiveTab} />
 
         <main>
+          {/* Breadcrumb Contextual Navigation */}
+          <BreadcrumbBar
+            activeTab={activeTab}
+            selectedStudentId={studentId}
+            onNavigateTab={setActiveTab}
+          />
+
           {activeTab === "dash" && (
             <DashboardTab
               stats={stats}
@@ -1922,29 +3247,37 @@ function App() {
               onQuickPick={handleQuickPick}
               onSimulate={handleSimulate}
               simResult={simResult}
+              onOpenEditStudent={(stu) => setEditingStudent(stu)}
             />
           )}
 
           {activeTab === "cohort" && (
             <CohortTab
               cohorts={cohorts}
-              currentRole={role}
-              onSelectStudent={(sid) => {
-                setStudentId(sid);
-                fetchAssessment(sid);
-                setActiveTab("slip");
-              }}
+              onSelectStudent={handleNavigateToStudent}
+              onOpenEditStudent={(stu) => setEditingStudent(stu)}
+              onNavigateToGraph={handleNavigateToGraph}
+              onNavigateToIntervention={handleNavigateToIntervention}
+              activeUser={activeUser}
+              enforceRls={enforceRls}
+              onToggleRls={() => setEnforceRls((prev) => !prev)}
+              initialRuleFilter={cohortInitialRuleFilter}
             />
           )}
 
           {activeTab === "graph" && (
             <GraphNetworkTab
               graphData={graphData}
-              onSelectStudent={(sid) => {
+              onSelectStudent={handleNavigateToStudent}
+              onOpenIntervention={handleNavigateToIntervention}
+              onFilterInCohort={(sid) => {
                 setStudentId(sid);
-                fetchAssessment(sid);
-                setActiveTab("slip");
+                setActiveTab("cohort");
               }}
+              onAskCopilot={(qText) => {
+                setActiveTab("copilot");
+              }}
+              initialSelectedSid={graphSelectedSid || studentId}
             />
           )}
 
@@ -1952,6 +3285,8 @@ function App() {
             <InterventionsTab
               interventions={interventions}
               onAddIntervention={handleAddIntervention}
+              onOpenEditIntervention={(it) => setEditingIntervention(it)}
+              onDeleteIntervention={handleDeleteIntervention}
               onUploadCsv={handleUploadCsv}
             />
           )}
@@ -1961,6 +3296,12 @@ function App() {
               rules={rules}
               models={models}
               onActivateModel={handleActivateModel}
+              onOpenEditRule={(r) => setEditingRule(r)}
+              onReevaluateRules={handleReevaluateRules}
+              onViewViolations={(r) => setRuleViolationsModal(r)}
+              onShowRuleInfo={(r) => setRuleInfoModal(r)}
+              canEditRules={activeUser.can_edit_rules}
+              reevaluating={reevaluatingRules}
             />
           )}
 
@@ -1973,6 +3314,64 @@ function App() {
             />
           )}
         </main>
+
+        {/* Modal Dialogs for CRUD & Information */}
+        {editingStudent && (
+          <EditStudentModal
+            student={editingStudent}
+            onClose={() => setEditingStudent(null)}
+            onSave={handleSaveStudent}
+          />
+        )}
+
+        {editingIntervention && (
+          <EditInterventionModal
+            intervention={editingIntervention}
+            onClose={() => setEditingIntervention(null)}
+            onSave={handleSaveIntervention}
+          />
+        )}
+
+        {editingRule && (
+          <EditRuleModal
+            rule={editingRule}
+            onClose={() => setEditingRule(null)}
+            onSave={handleSaveRule}
+          />
+        )}
+
+        {ruleInfoModal && (
+          <RuleDetailModal
+            rule={ruleInfoModal}
+            onClose={() => setRuleInfoModal(null)}
+            onFilterCohort={handleNavigateToCohortWithRule}
+          />
+        )}
+
+        {ruleViolationsModal && (
+          <RuleViolationsModal
+            rule={ruleViolationsModal}
+            onClose={() => setRuleViolationsModal(null)}
+            onSelectStudent={handleNavigateToStudent}
+            onFilterCohort={handleNavigateToCohortWithRule}
+          />
+        )}
+
+        {roleInfoModalOpen && (
+          <RoleExplanationModal
+            onClose={() => setRoleInfoModalOpen(false)}
+          />
+        )}
+
+        {/* Toast Container */}
+        <div className="toast-container">
+          {toasts.map((t) => (
+            <div key={t.id} className={`toast-item ${t.type}`}>
+              <span>{t.type === "success" ? "✓" : "⚠️"}</span>
+              <span>{t.message}</span>
+            </div>
+          ))}
+        </div>
 
         <footer>
           <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
