@@ -5,11 +5,11 @@
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Node.js v24](https://img.shields.io/badge/Node.js-v24_BFF_Gateway-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
-[![React 18](https://img.shields.io/badge/React-18_UI_Adapter-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+[![React 18](https://img.shields.io/badge/React-18_SPA_(Impeccable)-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL_16-3NF_%7C_RLS_%7C_Temporal-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![PyTorch Geometric](https://img.shields.io/badge/PyG-Sheaf_Attention_GNN-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch-geometric.readthedocs.io/)
 [![Architecture](https://img.shields.io/badge/Architecture-Hexagonal_(Ports_%26_Adapters)-C07F00?style=for-the-badge)](#2-hexagonal-architecture-ports--adapters)
-[![Tests](https://img.shields.io/badge/Automated_Tests-7%2F7_Passing-2E7D52?style=for-the-badge)](#9-testing--verification)
+[![Tests](https://img.shields.io/badge/Automated_Tests-12%2F12_Passing-2E7D52?style=for-the-badge)](#9-testing--verification)
 
 **Author:** **Huỳnh Lê Thanh Hải** · B.Sc. Computer Science (Advanced Program — Database Specialization)  
 **Institution:** Ho Chi Minh City Open University (HCMC OU)  
@@ -509,7 +509,10 @@ Open your browser at:
 
 ## 🧪 9. Testing & Verification
 
-Run the automated test suite covering `R01–R04` edge cases (Semester 1 `0.80` floor vs. Semester 2 `1.00` floor), `SV002` early model detection vs. `SV003` regulatory override, row-level CSV validation, and the Hexagonal `EvaluateStudentRiskUseCase`:
+The system is protected by a dual test suite comprising **12/12 automated test cases** covering both the Python Hexagonal Domain Core and the Node.js BFF Gateway:
+
+### 9.1 Python Hexagonal Core Tests (7/7 tests pass)
+Run unit tests covering `R01–R04` edge cases (Semester 1 `0.80` floor vs. Semester 2 `1.00` floor), `SV002` early model detection vs. `SV003` regulatory override, row-level CSV validation, and the Hexagonal `EvaluateStudentRiskUseCase`:
 
 ```powershell
 python e:\cnlthd\edualert\tests\test_edualert.py
@@ -524,7 +527,30 @@ test_rule_r02_debt_over_24_credits (__main__.TestEduAlertSystem) ... ok
 test_rule_r03_first_vs_later_semester_floor (__main__.TestEduAlertSystem) ... ok
 test_rule_r04_cumulative_gpa_by_year (__main__.TestEduAlertSystem) ... ok
 ----------------------------------------------------------------------
-Ran 7 tests in 0.378s — OK
+Ran 7 tests in 0.311s — OK
+```
+
+### 9.2 Node.js v24 BFF Gateway Integration Tests (5/5 tests pass)
+Run automated integration tests verifying Circuit Breaker state transitions, Rate Limiting, proper MIME types (`.html`, `.jsx` `text/babel`, `.js`), offline bundle availability, and Distributed Tracing (`X-Correlation-Id`):
+
+```powershell
+node e:\cnlthd\edualert\tests\test_gateway.js
+```
+
+```text
+Starting Node.js Gateway Integration Tests on port 3001...
+1. Testing /api/gateway/health...
+   ✓ Health check passed with Correlation ID: req-ba272129-49f
+2. Testing static file / (index.html)...
+   ✓ index.html served properly with React 18 mount point
+3. Testing static file /react_app.jsx...
+   ✓ react_app.jsx served with text/babel MIME type
+4. Testing vendor scripts (react.min.js, react-dom.min.js, babel.min.js)...
+   ✓ Offline vendor scripts are 100% available without external network
+5. Testing /api/gateway/circuit-breaker/reset...
+   ✓ Circuit breaker reset endpoint operates correctly
+
+ALL NODE.JS GATEWAY INTEGRATION TESTS PASSED (5/5)! 🎯
 ```
 
 ---

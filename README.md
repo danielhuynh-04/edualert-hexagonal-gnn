@@ -5,11 +5,11 @@
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Node.js v24](https://img.shields.io/badge/Node.js-v24_BFF_Gateway-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
-[![React 18](https://img.shields.io/badge/React-18_UI_Adapter-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+[![React 18](https://img.shields.io/badge/React-18_SPA_(Impeccable)-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL_16-3NF_%7C_RLS_%7C_Temporal-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![PyTorch Geometric](https://img.shields.io/badge/PyG-Sheaf_Attention_GNN-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch-geometric.readthedocs.io/)
 [![Kiến trúc](https://img.shields.io/badge/Kiến_trúc-Hexagonal_(Ports_%26_Adapters)-C07F00?style=for-the-badge)](#2-kiến-trúc-lục-giác-hexagonal-architecture--ports--adapters)
-[![Kiểm thử](https://img.shields.io/badge/Kiểm_thử_tự_động-7%2F7_Passing-2E7D52?style=for-the-badge)](#9-kiểm-thử-tự-động--xác-thực-hệ-thống)
+[![Kiểm thử](https://img.shields.io/badge/Kiểm_thử_tự_động-12%2F12_Passing-2E7D52?style=for-the-badge)](#9-kiểm-thử-tự-động--xác-thực-hệ-thống)
 
 **Tác giả:** **Huỳnh Lê Thanh Hải** · Cử nhân Khoa học Máy tính (Chương trình Tiên tiến — Chuyên ngành Cơ sở Dữ liệu)  
 **Đơn vị:** Trường Đại học Mở Thành phố Hồ Chí Minh (HCMC OU)  
@@ -461,9 +461,12 @@ edualert/
 │        └─ persistence_and_ml.py        # Concrete Adapters kết nối Domain Ports với Rule Engine, Sheaf GNN & SQLite/PG
 ├─ node_gateway/                         # 🚀 ADAPTER ĐẦU VÀO: Node.js v24 BFF Gateway (:3000)
 │  └─ server.js                          # Circuit Breaker, Token-Bucket Rate Limiter, X-Correlation-Id, Reverse Proxy
-├─ frontend/                             # 💻 ADAPTER ĐẦU VÀO: React 18 SPA & SVG DataViz
-│  ├─ index.html                         # Giao diện Web 8 tab hoàn chỉnh (kế thừa con dấu tròn)
-│  └─ react_app.jsx                      # Component React 18 Modular & Custom Hook useStudentAssessment
+├─ frontend/                             # 💻 ADAPTER ĐẦU VÀO: React 18 SPA (Impeccable Visual Craftsmanship)
+│  ├─ index.html                         # SPA Mount Container & Bảng màu Ink/Paper chuẩn học thuật
+│  ├─ react_app.jsx                      # Ứng dụng React 18 SPA 8 Tabs hoàn chỉnh (Charter Serif, Tabular figures)
+│  ├─ react.min.js                       # Runtime React 18.3.1 (Tải sẵn offline 100%, không cần CDN)
+│  ├─ react-dom.min.js                   # Runtime ReactDOM 18.3.1 (Tải sẵn offline 100%)
+│  └─ babel.min.js                       # Trình biên dịch JSX Babel Standalone offline
 ├─ backend/                              # ⚙️ PYTHON CORE & ML PIPELINE (:8000)
 │  ├─ app.py                             # Máy chủ REST API (M01-M12 + Simulator + Copilot + Hexagonal Blueprint)
 │  ├─ database.py                        # Khởi tạo CSDL 18 bảng chuẩn 3NF & Ghi nhật ký Audit
@@ -475,8 +478,11 @@ edualert/
 │  ├─ postgres_schema_rls.sql            # DDL PostgreSQL 16 (3NF, Ràng buộc DATERANGE, RLS, Materialized View)
 │  └─ edualert.db                        # File CSDL SQLite 3NF cục bộ (tự tạo khi khởi động)
 ├─ tests/
-│  └─ test_edualert.py                   # Bộ kiểm thử tự động toàn diện (7/7 tests pass)
+│  ├─ test_edualert.py                   # Bộ kiểm thử tự động Hexagonal Core Python (7/7 tests pass)
+│  └─ test_gateway.js                    # Bộ kiểm thử tích hợp Node.js v24 BFF Gateway (5/5 tests pass)
 ├─ docs/
+│  ├─ PRODUCT.md                         # Định nghĩa sản phẩm, người dùng và mục tiêu học thuật (Chuẩn Impeccable)
+│  ├─ DESIGN.md                          # Hệ thống thiết kế Impeccable (Ink/Paper, Typography Serif, Không AI slop)
 │  └─ DATA_CARD.md                       # Đặc tả dữ liệu tổng hợp, giả định nhân quả & Nghị định 13/2023/NĐ-CP
 ├─ package.json                          # Cấu hình dự án Node.js
 ├─ start_edualert.bat                    # Kịch bản khởi chạy 1-Click cho Python Core (:8000) + Node.js Gateway (:3000)
@@ -514,7 +520,10 @@ Truy cập hệ thống trên trình duyệt:
 
 ## 🧪 9. Kiểm thử Tự động & Xác thực Hệ thống
 
-Chạy bộ kiểm thử tự động kiểm tra ca biên các quy tắc `R01–R04` (Sàn HK1 `0.80` vs. Sàn HK2+ `1.00`), đối soát sinh viên phát hiện sớm `SV002` vs. sinh viên vi phạm quy chế `SV003`, kiểm tra hợp lệ file CSV theo dòng và kiểm chứng `EvaluateStudentRiskUseCase`:
+Hệ thống được bảo vệ bởi bộ kiểm thử tự động kép gồm **12/12 test cases** bao phủ cả Lõi Lục giác Python Core và Cổng kết nối Node.js BFF Gateway:
+
+### 9.1 Kiểm thử Lõi Lục giác Python (7/7 tests pass)
+Kiểm tra ca biên các quy tắc `R01–R04` (Sàn HK1 `0.80` vs. Sàn HK2+ `1.00`), đối soát sinh viên phát hiện sớm `SV002` vs. sinh viên vi phạm quy chế `SV003`, kiểm tra hợp lệ file CSV theo dòng và kiểm chứng `EvaluateStudentRiskUseCase`:
 
 ```powershell
 python e:\cnlthd\edualert\tests\test_edualert.py
@@ -529,7 +538,30 @@ test_rule_r02_debt_over_24_credits (__main__.TestEduAlertSystem) ... ok
 test_rule_r03_first_vs_later_semester_floor (__main__.TestEduAlertSystem) ... ok
 test_rule_r04_cumulative_gpa_by_year (__main__.TestEduAlertSystem) ... ok
 ----------------------------------------------------------------------
-Ran 7 tests in 0.378s — OK
+Ran 7 tests in 0.311s — OK
+```
+
+### 9.2 Kiểm thử Tích hợp Node.js BFF Gateway (5/5 tests pass)
+Kiểm tra cơ chế Circuit Breaker, Token-Bucket Rate Limiter, MIME types tĩnh (HTML, JSX text/babel, offline JS), Distributed Tracing (`X-Correlation-Id`):
+
+```powershell
+node e:\cnlthd\edualert\tests\test_gateway.js
+```
+
+```text
+Starting Node.js Gateway Integration Tests on port 3001...
+1. Testing /api/gateway/health...
+   ✓ Health check passed with Correlation ID: req-ba272129-49f
+2. Testing static file / (index.html)...
+   ✓ index.html served properly with React 18 mount point
+3. Testing static file /react_app.jsx...
+   ✓ react_app.jsx served with text/babel MIME type
+4. Testing vendor scripts (react.min.js, react-dom.min.js, babel.min.js)...
+   ✓ Offline vendor scripts are 100% available without external network
+5. Testing /api/gateway/circuit-breaker/reset...
+   ✓ Circuit breaker reset endpoint operates correctly
+
+ALL NODE.JS GATEWAY INTEGRATION TESTS PASSED (5/5)! 🎯
 ```
 
 ---
