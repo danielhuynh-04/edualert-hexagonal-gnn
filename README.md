@@ -19,7 +19,7 @@
 
 ---
 
-[ **🇻🇳 Tiếng Việt** | [🇬🇧 English](README_EN.md) ]
+[ **🇻🇳 Tiếng Việt** | [🇬🇧 English](README_EN.md) | [🎤 **Kịch bản Thuyết trình**](docs/KICH_BAN_THUYET_TRINH.md) | [📐 **Thiết kế Impeccable**](docs/DESIGN.md) ]
 
 </div>
 

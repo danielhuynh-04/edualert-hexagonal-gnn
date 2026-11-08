@@ -17,6 +17,10 @@
 **Institution:** Ho Chi Minh City Open University (HCMC OU)  
 **GitHub:** [github.com/danielhuynh-04](https://github.com/danielhuynh-04) · **Kaggle:** [kaggle.com/lthanhhihunh](https://www.kaggle.com/lthanhhihunh) · **LinkedIn:** [linkedin.com/in/le-thanh-hai-huynh](https://www.linkedin.com/in/le-thanh-hai-huynh)
 
+---
+
+[ [🇻🇳 Tiếng Việt](README.md) | **🇬🇧 English** | [🎤 **Presentation Script**](docs/KICH_BAN_THUYET_TRINH.md) | [📐 **Impeccable Design**](docs/DESIGN.md) ]
+
 </div>
 
 ---
