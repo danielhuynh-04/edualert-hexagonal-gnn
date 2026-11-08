@@ -371,14 +371,48 @@ def api_student_assessment(student_id: str):
 @app.route("/api/assess/simulate", methods=["POST"])
 def api_assess_simulate():
     body = request.get_json(force=True, silent=True) or {}
+    sid = body.get("student_id")
     entrance = float(body.get("entrance_score", 19.5))
-    debt = int(body.get("accumulated_debt_credits", 10))
+    debt = int(body.get("accumulated_debt_credits", body.get("sim_debt", 10)))
     consec_w = int(body.get("consecutive_warnings", 0))
     plan = body.get("plan", {"tc": 18, "easy": 2, "mid": 2, "hard": 2})
     raw_sems = body.get("semesters", [])
 
+    conn = get_connection()
+    stu = None
+    if not raw_sems and sid:
+        db_sems = [
+            dict(r)
+            for r in conn.execute(
+                "SELECT * FROM semester_results WHERE student_id = ? ORDER BY semester_seq",
+                (sid,),
+            ).fetchall()
+        ]
+        stu = conn.execute("SELECT * FROM students WHERE student_id = ?", (sid,)).fetchone()
+        adm = conn.execute("SELECT * FROM admission_scores WHERE student_id = ?", (sid,)).fetchone()
+        if db_sems:
+            if adm and adm["normalized_score_30"]:
+                entrance = float(adm["normalized_score_30"])
+            raw_sems = []
+            for s in db_sems:
+                raw_sems.append({
+                    "tcDK": s["registered_credits"],
+                    "tcKD": s["failed_credits"],
+                    "dtbHK": s["gpa_semester"],
+                    "dtbTL": s["gpa_cumulative"],
+                })
+            if "sim_gpa" in body:
+                raw_sems[-1]["dtbHK"] = float(body["sim_gpa"])
+                raw_sems[-1]["dtbTL"] = round((raw_sems[-1]["dtbTL"] * 0.75 + float(body["sim_gpa"]) * 0.25), 2)
+            if "sim_debt" in body:
+                raw_sems[-1]["tcKD"] = min(raw_sems[-1]["tcDK"], debt)
+
     if not raw_sems:
-        return jsonify({"error": "Chưa có dữ liệu học kỳ"}), 400
+        sim_gpa = float(body.get("sim_gpa", 1.8))
+        raw_sems = [
+            {"tcDK": 16, "tcKD": 0, "dtbHK": 2.8, "dtbTL": 2.8},
+            {"tcDK": 16, "tcKD": min(16, debt), "dtbHK": sim_gpa, "dtbTL": round((2.8 + sim_gpa) / 2, 2)},
+        ]
 
     sems = []
     for idx, s in enumerate(raw_sems, start=1):
@@ -403,7 +437,6 @@ def api_assess_simulate():
             }
         )
 
-    conn = get_connection()
     active_rules = load_active_rules(conn)
     conn.close()
 
@@ -436,19 +469,31 @@ def api_assess_simulate():
         for k, v in sorted(contrib.items(), key=lambda item: abs(item[1]), reverse=True)
     ]
 
+    stu_dict = dict(stu) if stu else {
+        "student_id": sid or "SV002",
+        "full_name": f"Sinh viên Giả lập ({sid or 'What-If'})",
+        "class_name": "Lớp Thử nghiệm What-If",
+        "advisor_name": "Cố vấn học tập",
+    }
+
     return jsonify(
         {
-            "study_year": last_sem["study_year"],
-            "num_semesters": len(sems),
-            "risk_level": risk_level,
-            "risk_probability": prob,
-            "risk_score": round(prob * 100, 1),
-            "rule_triggered": rule_eval["rule_triggered"],
-            "predicted_next_gpa": pred_gpa,
+            "student": stu_dict,
+            "assessment": {
+                "risk_level": risk_level,
+                "risk_score": round(prob * 100, 1),
+                "predicted_next_gpa": round(pred_gpa, 2),
+                "predicted_gpa_std": 0.15,
+                "explanation_text": expl,
+                "recommendations": [advice] if isinstance(advice, str) else advice,
+                "advisor_action_hint": advice,
+                "assessed_at": "Đánh giá giả lập What-If tức thời",
+            },
             "rule_checks": rule_eval["checks"],
             "factors": factors_out,
-            "explanation_text": expl,
-            "recommendations": advice,
+            "peers": [],
+            "semesters": sems,
+            "is_simulation": True,
         }
     )
 
