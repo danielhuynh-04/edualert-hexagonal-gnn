@@ -9,7 +9,9 @@
 [![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL_16-3NF_%7C_RLS_%7C_Temporal-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![PyTorch Geometric](https://img.shields.io/badge/PyG-Sheaf_Attention_GNN-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch-geometric.readthedocs.io/)
 [![Kiến trúc](https://img.shields.io/badge/Kiến_trúc-Hexagonal_(Ports_%26_Adapters)-C07F00?style=for-the-badge)](#2-kiến-trúc-lục-giác-hexagonal-architecture--ports--adapters)
-[![Kiểm thử](https://img.shields.io/badge/Kiểm_thử_tự_động-12%2F12_Passing-2E7D52?style=for-the-badge)](#9-kiểm-thử-tự-động--xác-thực-hệ-thống)
+[![Kiểm thử](https://img.shields.io/badge/Kiểm_thử_tự_động-14%2F14_Passing-2E7D52?style=for-the-badge)](#9-kiểm-thử-tự-động--xác-thực-hệ-thống)
+
+> **🛠️ Techstack:** `Python 3.10+ (Hexagonal Core)` · `Node.js v24 (Enterprise BFF Gateway)` · `React 18 SPA (Offline Runtime & Impeccable Design)` · `PyTorch Geometric (Sheaf Attention GNN)` · `PostgreSQL 16 / SQLite 3NF (RLS & Immutable Audit Log)` · `Flask (Clean REST API)` · `Circuit Breaker & Token-Bucket Rate Limiter`
 
 **Tác giả:** **Huỳnh Lê Thanh Hải** · Cử nhân Khoa học Máy tính (Chương trình Tiên tiến — Chuyên ngành Cơ sở Dữ liệu)  
 **Đơn vị:** Trường Đại học Mở Thành phố Hồ Chí Minh (HCMC OU)  
@@ -429,18 +431,18 @@ xychart-beta
 
 | Mã Màn hình | Tên Màn hình | Đối tượng Người dùng | Chức năng Kỹ thuật Chính |
 | :--- | :--- | :--- | :--- |
-| **M01** | **Xác thực & Chuyển đổi Vai trò RBAC/RLS** | Mọi vai trò | Cấp phiên làm việc và đổi vai trò ở header để kiểm chứng cơ chế Row-Level Security |
-| **M02** | **Trang Tổng quan (Executive Dashboard)** | CVHT, Ban Chủ nhiệm, Phòng ĐT | 5 ô KPI Đỏ/Vàng/Xanh, bộ đếm phát hiện sớm, biểu đồ xu hướng 4 kỳ và bảng kiểm định công bằng |
-| **M03** | **Phiếu Đánh giá Cá nhân** | CVHT | **Con dấu tròn đỏ/vàng/xanh**, trạng thái quy chế, thanh SHAP, văn bản giải thích và bộ giả lập What-If |
-| **M04** | **Biểu đồ Diễn biến Điểm & Dự báo** | CVHT | Đường diễn biến GPA các kỳ, đường sàn quy chế năm 2 (1.40) và đoạn nét đứt dự báo kỳ tới |
-| **M05** | **Danh sách Toàn khóa (Cohort View)** | CVHT, Ban Chủ nhiệm Khoa | Lọc theo Lớp, theo Màu cảnh báo, Tìm kiếm; cột *Nguồn kích hoạt* phân định rõ Quy chế vs Dự báo sớm |
-| **M06** | **Bản đồ Quan hệ Sinh viên (Sheaf Network)** | CVHT, Ban Chủ nhiệm Khoa | Đồ thị mạng 42 nút tương tác tô màu theo mức nguy cơ, độ đậm cạnh tỷ lệ với trọng số Sheaf $\alpha_{vu}$ |
-| **M07 & M10** | **Cấu hình Ngưỡng Quy chế Đào tạo** | Phòng Đào tạo, Quản trị | Sửa trực tiếp tham số JSON của `R01–R05` trong bảng `rule_config` và chạy lại toàn bộ hệ thống tức thì |
-| **M08** | **Ghi nhận Can thiệp của CVHT** | CVHT | Lưu lịch hẹn tư vấn, nội dung trao đổi và trạng thái (`SCHEDULED`, `COMPLETED`, `FOLLOW_UP_NEEDED`) |
+| **M01** | **Xác thực & Chuyển đổi Vai trò RBAC/RLS** | Mọi vai trò | Chuyển đổi linh hoạt giữa CVHT, Trưởng khoa, Phòng ĐT và Admin; tự động áp dụng Row-Level Security (Nghị định 13/2023/NĐ-CP) |
+| **M02** | **Trang Tổng quan (Executive Dashboard)** | CVHT, Ban Chủ nhiệm, Phòng ĐT | 5 ô KPI Đỏ/Vàng/Xanh, bộ đếm phát hiện sớm, biểu đồ xu hướng 4 kỳ và bảng kiểm định công bằng phương thức tuyển sinh |
+| **M03** | **Phiếu Đánh giá Cá nhân & What-If** | CVHT | **Con dấu tròn đỏ/vàng/xanh xoay -5.5°**, thanh SHAP đối xứng qua 0, văn bản giải thích và bộ giả lập What-If tức thời |
+| **M04** | **Biểu đồ Diễn biến Điểm & Dự báo** | CVHT | Đường diễn biến GPA các kỳ, sàn quy chế TT08 theo năm và nét đứt dự báo ĐTB kỳ tới kèm khoảng tin cậy ($\pm 0.15$) |
+| **M05** | **Danh sách Toàn khóa (Cohort View & CRUD)** | CVHT, Ban Chủ nhiệm Khoa | Bộ lọc chuẩn Impeccable (Lớp, Rủi ro, Quy chế TT08, R01–R05, GPA, Tín chỉ nợ, Tìm kiếm, Sắp xếp); nút thao tác 1-click liên kết |
+| **M06** | **Bản đồ Quan hệ Sinh viên (Sheaf Hero Canvas 1100×720)** | CVHT, Ban Chủ nhiệm Khoa | Đồ thị mạng diện rộng, cụm lớp sinh hoạt viền đứt nét mờ, viền đôi cho SV chạm TT08, nhãn số $\alpha_{vu}$ trên cạnh, zoom/pan và tìm MSSV |
+| **M07 & M10** | **Cấu hình Quy chế Đào tạo & Đối soát Toàn trường** | Phòng Đào tạo, Quản trị | Cấu hình động 5 điều quy chế (`R01–R05`), hiển thị căn cứ pháp lý, đơn vị, thống kê số lượng vi phạm, dấu `ⓘ` và nút `⚡ Chạy đối soát lại toàn trường ngay` |
+| **M08** | **Ghi nhận Can thiệp của CVHT** | CVHT | Quản lý biên bản tư vấn học vụ (CRUD đầy đủ), cập nhật kết quả can thiệp và ghi nhật ký kiểm toán bất biến |
 | **M09** | **Nhập Dữ liệu CSV & Kiểm tra Dòng** | Phòng Đào tạo | Bộ phân tích CSV bắt lỗi dòng (mã SV sai định dạng, GPA ngoài [0..4], tín chỉ rớt > đăng ký) |
-| **M11** | **Quản lý Phiên bản & Đối sánh Mô hình** | Quản trị Hệ thống | Bảng so sánh 6 kiến trúc (`Rule-Only`, `LogReg`, `RF`, `GCN`, `ST-GAT`, `Sheaf-Attn`) + nút kích hoạt |
+| **M11** | **Quản lý Phiên bản & Đối sánh Mô hình** | Quản trị Hệ thống | Bảng đối sánh 6 kiến trúc (`Rule-Only`, `LogReg`, `RF`, `GCN`, `ST-GAT`, `Sheaf-Attn`) + Permutation test 5 seed chống rò rỉ dữ liệu |
 | **M12** | **Xuất Báo cáo CSV/Excel Chuẩn Tiếng Việt** | Ban Chủ nhiệm, Phòng ĐT | Tải file UTF-8 BOM CSV (`EduAlert_BaoCao_CanhBaoHocVu_2025_HK2.csv`) mở thẳng trong Microsoft Excel |
-| **AI Copilot** | **Trợ lý Advisor Copilot (RAG + SQL)** | CVHT, Ban Chủ nhiệm Khoa | Trả lời quy chế Thông tư 08 kèm trích dẫn điều khoản chính xác và truy vấn SQL chỉ đọc minh bạch |
+| **AI Copilot** | **Trợ lý Advisor Copilot (RAG + SQL)** | CVHT, Ban Chủ nhiệm Khoa | Nhận diện thực thể thông minh (a03, sv3), trả lời lộ trình khắc phục học vụ chi tiết theo Thông tư 08 và Text-to-SQL an toàn |
 | **Hexagonal** | **Sơ đồ Kiến trúc & Mẫu Thiết kế** | Hội đồng Đánh giá Kỹ thuật | Trực quan hóa Ports & Adapters, theo dõi Circuit Breaker và live probe từ `EvaluateStudentRiskUseCase` |
 
 ---
@@ -520,10 +522,10 @@ Truy cập hệ thống trên trình duyệt:
 
 ## 🧪 9. Kiểm thử Tự động & Xác thực Hệ thống
 
-Hệ thống được bảo vệ bởi bộ kiểm thử tự động kép gồm **12/12 test cases** bao phủ cả Lõi Lục giác Python Core và Cổng kết nối Node.js BFF Gateway:
+Hệ thống được bảo vệ bởi bộ kiểm thử tự động kép gồm **14/14 test cases** bao phủ cả Lõi Lục giác Python Core và Cổng kết nối Node.js BFF Gateway:
 
-### 9.1 Kiểm thử Lõi Lục giác Python (7/7 tests pass)
-Kiểm tra ca biên các quy tắc `R01–R04` (Sàn HK1 `0.80` vs. Sàn HK2+ `1.00`), đối soát sinh viên phát hiện sớm `SV002` vs. sinh viên vi phạm quy chế `SV003`, kiểm tra hợp lệ file CSV theo dòng và kiểm chứng `EvaluateStudentRiskUseCase`:
+### 9.1 Kiểm thử Lõi Lục giác Python (9/9 tests pass)
+Kiểm tra ca biên các quy tắc `R01–R05` (Sàn HK1 `0.80` vs. Sàn HK2+ `1.00`, cảnh báo liên tiếp diện buộc thôi học), endpoint đối soát toàn trường `POST /api/rules/re-evaluate`, ma trận phân quyền và bảo vệ dữ liệu cấp dòng RLS theo Nghị định 13/2023/NĐ-CP (`GET /api/auth/roles`), đối soát sinh viên phát hiện sớm `SV002` vs. sinh viên vi phạm quy chế `SV003`, kiểm tra hợp lệ file CSV theo dòng và kiểm chứng `EvaluateStudentRiskUseCase`:
 
 ```powershell
 python e:\cnlthd\edualert\tests\test_edualert.py
@@ -533,12 +535,14 @@ python e:\cnlthd\edualert\tests\test_edualert.py
 test_api_csv_import_row_validation (__main__.TestEduAlertSystem) ... ok
 test_api_overview_and_archetypes (__main__.TestEduAlertSystem) ... ok
 test_hexagonal_architecture_blueprint_and_use_case (__main__.TestEduAlertSystem) ... ok
+test_rbac_and_roles_api (__main__.TestEduAlertSystem) ... ok
 test_rule_r01_sem_fail_ratio_over_50pct (__main__.TestEduAlertSystem) ... ok
 test_rule_r02_debt_over_24_credits (__main__.TestEduAlertSystem) ... ok
 test_rule_r03_first_vs_later_semester_floor (__main__.TestEduAlertSystem) ... ok
 test_rule_r04_cumulative_gpa_by_year (__main__.TestEduAlertSystem) ... ok
+test_rules_r01_to_r05_and_reevaluate (__main__.TestEduAlertSystem) ... ok
 ----------------------------------------------------------------------
-Ran 7 tests in 0.311s — OK
+Ran 9 tests in 0.817s — OK
 ```
 
 ### 9.2 Kiểm thử Tích hợp Node.js BFF Gateway (5/5 tests pass)

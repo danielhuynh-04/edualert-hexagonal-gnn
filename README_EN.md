@@ -9,7 +9,9 @@
 [![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL_16-3NF_%7C_RLS_%7C_Temporal-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![PyTorch Geometric](https://img.shields.io/badge/PyG-Sheaf_Attention_GNN-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch-geometric.readthedocs.io/)
 [![Architecture](https://img.shields.io/badge/Architecture-Hexagonal_(Ports_%26_Adapters)-C07F00?style=for-the-badge)](#2-hexagonal-architecture-ports--adapters)
-[![Tests](https://img.shields.io/badge/Automated_Tests-12%2F12_Passing-2E7D52?style=for-the-badge)](#9-testing--verification)
+[![Tests](https://img.shields.io/badge/Automated_Tests-14%2F14_Passing-2E7D52?style=for-the-badge)](#9-testing--verification)
+
+> **🛠️ Techstack:** `Python 3.10+ (Hexagonal Core)` · `Node.js v24 (Enterprise BFF Gateway)` · `React 18 SPA (Offline Runtime & Impeccable Design)` · `PyTorch Geometric (Sheaf Attention GNN)` · `PostgreSQL 16 / SQLite 3NF (RLS & Immutable Audit Log)` · `Flask (Clean REST API)` · `Circuit Breaker & Token-Bucket Rate Limiter`
 
 **Author:** **Huỳnh Lê Thanh Hải** · B.Sc. Computer Science (Advanced Program — Database Specialization)  
 **Institution:** Ho Chi Minh City Open University (HCMC OU)  
