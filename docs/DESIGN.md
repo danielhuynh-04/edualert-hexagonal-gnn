@@ -66,3 +66,4 @@ The signature visual element of EduAlert is the **Rotated Double-Ring Assessment
 - **Micro-interactions:** Buttons have a `1px` downward translate on `:active` with immediate tactile response.
 - **Data Density:** High information density without visual crowding. Tables utilize clean row-hover highlights (`#F8FAFC`) and monospace alignment for all numerical metrics.
 - **Interactive SVG Graphs:** Network nodes scale on hover with dynamic halo rings; edges display Sheaf Attention weights $\alpha_{vu}$ with directional transport indicators.
+

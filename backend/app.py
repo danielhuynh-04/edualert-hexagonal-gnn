@@ -11,7 +11,7 @@ import sys
 import json
 import hashlib
 from pathlib import Path
-from flask import Flask, request, jsonify, send_file, Response
+from flask import Flask, request, jsonify, send_file, send_from_directory, Response
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
@@ -56,6 +56,24 @@ def ensure_initialized() -> None:
 @app.route("/")
 def index():
     return send_file(str(FRONTEND_DIR / "index.html"))
+
+
+@app.route("/<path:filename>")
+def serve_frontend_static(filename: str):
+    file_path = FRONTEND_DIR / filename
+    if file_path.exists() and file_path.is_file():
+        if filename.endswith(".jsx"):
+            return send_from_directory(str(FRONTEND_DIR), filename, mimetype="text/babel; charset=utf-8")
+        elif filename.endswith(".js"):
+            return send_from_directory(str(FRONTEND_DIR), filename, mimetype="application/javascript; charset=utf-8")
+        elif filename.endswith(".css"):
+            return send_from_directory(str(FRONTEND_DIR), filename, mimetype="text/css; charset=utf-8")
+        elif filename.endswith(".svg"):
+            return send_from_directory(str(FRONTEND_DIR), filename, mimetype="image/svg+xml")
+        return send_from_directory(str(FRONTEND_DIR), filename)
+    if not filename.startswith("api/"):
+        return send_file(str(FRONTEND_DIR / "index.html"))
+    return jsonify({"error": "Endpoint not found"}), 404
 
 
 # 1. POST /api/auth/login (M01)

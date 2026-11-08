@@ -26,3 +26,4 @@
 - **Authoritative & Institutional:** Echoes the gravity of a university registrar's official seal and academic board proceedings.
 - **Supportive & Constructive:** Never uses stigmatizing or accusatory language. Alerts are framed as diagnostic opportunities for timely academic assistance.
 - **Scientifically Rigorous:** Displays uncertainty intervals ($\pm 0.15$ GPA), calibration curves (ECE), and permutation test baselines ($R^2 \to 0.024$ under label shuffle) to demonstrate technical honesty.
+
