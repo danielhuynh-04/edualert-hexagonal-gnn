@@ -11,7 +11,7 @@
 [![Architecture](https://img.shields.io/badge/Architecture-Hexagonal_(Ports_%26_Adapters)-C07F00?style=for-the-badge)](#2-hexagonal-architecture-ports--adapters)
 [![Tests](https://img.shields.io/badge/Automated_Tests-14%2F14_Passing-2E7D52?style=for-the-badge)](#9-testing--verification)
 
-> **🛠️ Techstack:** `Python 3.10+ (Hexagonal Core)` · `Node.js v24 (Enterprise BFF Gateway)` · `React 18 SPA (Offline Runtime & Impeccable Design)` · `PyTorch Geometric (Sheaf Attention GNN)` · `PostgreSQL 16 / SQLite 3NF (RLS & Immutable Audit Log)` · `Flask (Clean REST API)` · `Circuit Breaker & Token-Bucket Rate Limiter`
+> **🛠️ Techstack:** `Python 3.10+ (Hexagonal Core)` · `Node.js v24 (Enterprise BFF Gateway)` · `React 18 SPA (Offline Runtime & Impeccable Design)` · `Google Gemini AI API (Hybrid Grounded RAG + SQL)` · `PyTorch Geometric (Sheaf Attention GNN)` · `PostgreSQL 16 / SQLite 3NF (5-Level RBAC/RLS & Audit Log)` · `Microsoft Azure App Service (CI/CD + Docker)`
 
 **Author:** **Huỳnh Lê Thanh Hải** · B.Sc. Computer Science (Advanced Program — Database Specialization)  
 **Institution:** Ho Chi Minh City Open University (HCMC OU)  
@@ -19,7 +19,7 @@
 
 ---
 
-[ [🇻🇳 Tiếng Việt](README.md) | **🇬🇧 English** | [🎤 **Presentation Script**](docs/KICH_BAN_THUYET_TRINH.md) | [📐 **Impeccable Design**](docs/DESIGN.md) ]
+[ [🇻🇳 Tiếng Việt](README.md) | **🇬🇧 English** | [🎤 **Presentation Script**](docs/KICH_BAN_THUYET_TRINH.md) | [☁️ **Azure Deployment**](docs/AZURE_DEPLOY_GUIDE.md) | [🚀 **Expansion Roadmap**](docs/EXPANSION_ROADMAP.md) | [📐 **Impeccable Design**](docs/DESIGN.md) ]
 
 </div>
 

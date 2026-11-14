@@ -200,60 +200,84 @@ function normalizeGraph(raw) {
 }
 
 // ============================================================================
-// 2. HEADER & ROLE NAVIGATION (RBAC / RLS)
+// 2. HEADER & ROLE NAVIGATION (RBAC / RLS — 5 LEVELS)
 // ============================================================================
-function Header({ currentUsername, userRoles, onUserChange, onExportClick, onOpenRoleInfo }) {
+function Header({ currentUsername, userRoles, onUserChange, onExportClick, onOpenRoleInfo, onLogout, activeUser }) {
   const roles = Array.isArray(userRoles) && userRoles.length > 0 ? userRoles : [
-    { username: "daotao", role: "TRAINING_DEPT", display_name: "Phòng Quản lý Đào tạo (Toàn trường)", assigned_classes: [] },
-    { username: "cvht_lan", role: "ADVISOR", display_name: "TS. Nguyễn Thị Lan (Lớp DH23CS01, DH23CS02)", assigned_classes: ["DH23CS01", "DH23CS02"] },
-    { username: "cvht_minh", role: "ADVISOR", display_name: "ThS. Trần Văn Minh (Lớp DH24AI01, DH24AI02)", assigned_classes: ["DH24AI01", "DH24AI02"] },
-    { username: "cvht_hung", role: "ADVISOR", display_name: "TS. Lê Hoàng Hùng (Lớp DH23IS01, DH24IS02)", assigned_classes: ["DH23IS01", "DH24IS02"] },
-    { username: "bcnkhoa", role: "FACULTY_BOARD", display_name: "Ban Chủ nhiệm Khoa CNTT", assigned_classes: [] },
-    { username: "admin", role: "ADMIN", display_name: "Quản trị Hệ thống (Admin)", assigned_classes: [] },
+    { username: "sv002", role: "STUDENT", level: 1, level_label: "LV1 · Sinh viên", display_name: "Trần Hoàng Nam (SV002)", assigned_classes: ["DH23CS02"] },
+    { username: "daotao", role: "TRAINING_DEPT", level: 4, level_label: "LV4 · Phòng Đào tạo", display_name: "Phòng Quản lý Đào tạo (Toàn trường)", assigned_classes: [] },
+    { username: "cvht_lan", role: "ADVISOR", level: 2, level_label: "LV2 · Cố vấn Học tập", display_name: "TS. Nguyễn Thị Lan (Lớp DH23CS01, DH23CS02)", assigned_classes: ["DH23CS01", "DH23CS02"] },
+    { username: "cvht_minh", role: "ADVISOR", level: 2, level_label: "LV2 · Cố vấn Học tập", display_name: "ThS. Trần Văn Minh (Lớp DH24AI01, DH24AI02)", assigned_classes: ["DH24AI01", "DH24AI02"] },
+    { username: "cvht_hung", role: "ADVISOR", level: 2, level_label: "LV2 · Cố vấn Học tập", display_name: "TS. Lê Hoàng Hùng (Lớp DH23IS01, DH24IS02)", assigned_classes: ["DH23IS01", "DH24IS02"] },
+    { username: "bcnkhoa", role: "FACULTY_BOARD", level: 3, level_label: "LV3 · BCN Khoa", display_name: "Ban Chủ nhiệm Khoa CNTT", assigned_classes: [] },
+    { username: "admin", role: "ADMIN", level: 5, level_label: "LV5 · Quản trị Hệ thống", display_name: "Quản trị Hệ thống (Admin)", assigned_classes: [] },
   ];
 
-  const activeUser = roles.find((r) => r.username === currentUsername) || roles[0];
+  const user = activeUser || roles.find((r) => r.username === currentUsername) || roles[0];
+  const isStudent = user && (user.level === 1 || user.role === "STUDENT");
 
   return (
     <header className="app">
       <div className="brand">
         <h1>EduAlert</h1>
         <span className="sub">
-          Hệ thống cảnh báo sớm kết quả học tập đa cấp độ (Rule Engine TT08/2021 + Sheaf Attention GNN)
+          Hệ thống cảnh báo sớm kết quả học tập đa cấp độ (Rule Engine TT08/2021 + Sheaf Attention GNN + Gemini AI)
         </span>
       </div>
       <div className="rolebar">
-        <span>Vai trò (RBAC):</span>
-        <select
-          id="roleSelect"
-          className="rolesel"
-          value={currentUsername}
-          onChange={(e) => onUserChange(e.target.value)}
-        >
-          {roles.map((u) => (
-            <option key={u.username} value={u.username}>
-              {u.display_name} [{u.role}]
-            </option>
-          ))}
-        </select>
+        <LevelBadge level={user.level || 2} label={user.level_label || `LV${user.level || 2} · ${user.role}`} />
+
+        {!isStudent ? (
+          <>
+            <span>Vai trò (RBAC):</span>
+            <select
+              id="roleSelect"
+              className="rolesel"
+              value={currentUsername}
+              onChange={(e) => onUserChange(e.target.value)}
+            >
+              {roles.map((u) => (
+                <option key={u.username} value={u.username}>
+                  [{u.level ? `LV${u.level}` : u.role}] {u.display_name}
+                </option>
+              ))}
+            </select>
+          </>
+        ) : (
+          <span className="user-chip">
+            <span className="av">{(user.display_name || "S")[0]}</span>
+            <span className="nm">{user.display_name}</span>
+          </span>
+        )}
 
         <button
           type="button"
           className="graph-btn"
           style={{ background: "#334155", color: "#F8FAFC", borderColor: "#475569" }}
           onClick={onOpenRoleInfo}
-          title="Xem chi tiết phân quyền RBAC và chính sách bảo vệ dữ liệu RLS theo Nghị định 13/2023/NĐ-CP"
+          title="Xem chi tiết phân quyền 5 cấp độ RBAC và chính sách bảo vệ dữ liệu RLS theo Nghị định 13/2023/NĐ-CP"
         >
           ⓘ Phân quyền &amp; RLS
         </button>
 
+        {!isStudent && (
+          <button
+            type="button"
+            className="btn-export"
+            onClick={onExportClick}
+            title="Xuất bảng tổng hợp cohort định dạng CSV theo Thông tư 08"
+          >
+            ⬇ Xuất Excel/CSV (M12)
+          </button>
+        )}
+
         <button
           type="button"
-          className="btn-export"
-          onClick={onExportClick}
-          title="Xuất bảng tổng hợp cohort định dạng CSV theo Thông tư 08"
+          className="logout-btn"
+          onClick={onLogout}
+          title="Đăng xuất về Cổng xác thực 5 cấp độ M01"
         >
-          ⬇ Xuất Excel/CSV (M12)
+          🚪 Đăng xuất
         </button>
       </div>
     </header>
@@ -261,14 +285,23 @@ function Header({ currentUsername, userRoles, onUserChange, onExportClick, onOpe
 }
 
 function NoticeBanner({ activeModelName, activeUser, enforceRls }) {
+  const isStudent = activeUser && (activeUser.level === 1 || activeUser.role === "STUDENT");
   const isAdvisor = activeUser && activeUser.role === "ADVISOR";
   return (
     <div className="notice">
       <div>
-        <strong>Kiến trúc Hybrid:</strong> Tầng quy chế (Thông tư 08/2021/TT-BGDĐT) có quyền ưu tiên tuyệt đối; Tầng dự báo (Sheaf Attention Network) phát hiện sớm xu hướng sụt giảm điểm và quan hệ dị thể.
-        {isAdvisor && enforceRls && (
-          <span style={{ marginLeft: "10px", color: "#1E3A8A", fontWeight: 600 }}>
-            • Chế độ RLS: Đang giới hạn dữ liệu theo các lớp được phân công ({activeUser.assigned_classes.join(", ")})
+        {isStudent ? (
+          <span>
+            <strong>Cổng Dịch Vụ Sinh Viên (LV1):</strong> Hồ sơ học vụ của bạn được bảo vệ theo <strong>Nghị định 13/2023/NĐ-CP</strong> và đối chiếu tự động với <strong>Điều 11 Thông tư 08/2021/TT-BGDĐT</strong>. Bạn chỉ xem được dữ liệu cá nhân của chính mình.
+          </span>
+        ) : (
+          <span>
+            <strong>Kiến trúc Hybrid:</strong> Tầng quy chế (Thông tư 08/2021/TT-BGDĐT) có quyền ưu tiên tuyệt đối; Tầng dự báo (Sheaf Attention Network) phát hiện sớm xu hướng sụt giảm điểm và quan hệ dị thể.
+            {isAdvisor && enforceRls && activeUser.assigned_classes && (
+              <span style={{ marginLeft: "10px", color: "#1E3A8A", fontWeight: 600 }}>
+                • Chế độ RLS: Đang giới hạn dữ liệu theo các lớp được phân công ({activeUser.assigned_classes.join(", ")})
+              </span>
+            )}
           </span>
         )}
       </div>
@@ -279,21 +312,24 @@ function NoticeBanner({ activeModelName, activeUser, enforceRls }) {
   );
 }
 
-function TabBar({ activeTab, onTabSelect }) {
+function TabBar({ activeTab, onTabSelect, userLevel }) {
+  const currentLvl = userLevel || 2;
   const tabs = [
-    { id: "dash", label: "M02 · Tổng quan (Dashboard)" },
-    { id: "slip", label: "M03 & M04 · Phiếu cá nhân & Diễn biến" },
-    { id: "cohort", label: "M05 · Danh sách toàn khóa (Cohort View & CRUD)" },
-    { id: "graph", label: "M06 · Đồ thị quan hệ (Sheaf Network)" },
-    { id: "ops", label: "M08 & M09 · Quản lý Can thiệp CVHT & Nhập liệu" },
-    { id: "admin", label: "M10 & M11 · Quy chế & Benchmark Mô hình" },
-    { id: "copilot", label: "🤖 Advisor Copilot (RAG + SQL)" },
-    { id: "hex", label: "🏛 Kiến trúc Hexagonal (Node.js Gateway)" },
+    { id: "dash", label: "M02 · Tổng quan (Dashboard)", minLevel: 2 },
+    { id: "slip", label: "M03 & M04 · Phiếu cá nhân & Diễn biến", minLevel: 1 },
+    { id: "cohort", label: "M05 · Danh sách toàn khóa (Cohort View & CRUD)", minLevel: 2 },
+    { id: "graph", label: "M06 · Đồ thị quan hệ (Sheaf Network)", minLevel: 2 },
+    { id: "ops", label: "M08 & M09 · Quản lý Can thiệp CVHT & Nhập liệu", minLevel: 2 },
+    { id: "admin", label: "M10 & M11 · Quy chế & Benchmark Mô hình", minLevel: 3 },
+    { id: "copilot", label: "✦ Trợ lý AI (Gemini + RAG + SQL)", minLevel: 1 },
+    { id: "hex", label: "🏛 Kiến trúc Hexagonal (Node.js Gateway)", minLevel: 2 },
   ];
+
+  const visibleTabs = tabs.filter((t) => currentLvl >= t.minLevel);
 
   return (
     <div className="tabs" role="tablist">
-      {tabs.map((t) => (
+      {visibleTabs.map((t) => (
         <button
           key={t.id}
           type="button"
@@ -691,6 +727,7 @@ function IndividualSlipTab({
   onSimulate,
   simResult,
   onOpenEditStudent,
+  isStudent,
 }) {
   const [showSim, setShowSim] = useState(false);
   const [simGpa, setSimGpa] = useState(1.45);
@@ -716,23 +753,39 @@ function IndividualSlipTab({
     <div>
       <div className="card picker-bar">
         <div className="picker-left">
-          <label><strong>Tra cứu mã hồ sơ sinh viên:</strong></label>
+          <label><strong>{isStudent ? "Mã hồ sơ sinh viên của bạn:" : "Tra cứu mã hồ sơ sinh viên:"}</strong></label>
           <div className="picker-inputs">
-            <input
-              type="text"
-              value={studentId}
-              onChange={(e) => onStudentIdChange(e.target.value.toUpperCase().trim())}
-              placeholder="VD: SV002"
-              style={{ maxWidth: "140px" }}
-            />
-            <button type="button" className="small" onClick={() => onQuickPick("SV002")}>Mẫu Vàng sớm (SV002 - Tụt điểm)</button>
-            <button type="button" className="small" onClick={() => onQuickPick("SV003")}>Mẫu Đỏ TT08 (SV003)</button>
-            <button type="button" className="small" onClick={() => onQuickPick("SV001")}>Mẫu An toàn (SV001)</button>
-            <button type="button" className="small" onClick={() => onQuickPick("SV005")}>Mẫu Thôi học (SV005)</button>
+            {isStudent ? (
+              <span className="locked-id">
+                🔒 {studentId} · {assessment ? assessment.student_name : "Hồ sơ cá nhân"} (RLS Nghị định 13/2023)
+              </span>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  value={studentId}
+                  onChange={(e) => onStudentIdChange(e.target.value.toUpperCase().trim())}
+                  placeholder="VD: SV002"
+                  style={{ maxWidth: "140px" }}
+                />
+                <button type="button" className="small" onClick={() => onQuickPick("SV002")}>Mẫu Vàng sớm (SV002 - Tụt điểm)</button>
+                <button type="button" className="small" onClick={() => onQuickPick("SV003")}>Mẫu Đỏ TT08 (SV003)</button>
+                <button type="button" className="small" onClick={() => onQuickPick("SV001")}>Mẫu An toàn (SV001)</button>
+                <button type="button" className="small" onClick={() => onQuickPick("SV005")}>Mẫu Thôi học (SV005)</button>
+              </>
+            )}
           </div>
         </div>
-        <div style={{ display: "flex", gap: "8px" }}>
-          {assessment && (
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <button
+            type="button"
+            className="small"
+            style={{ background: "var(--ai-bg)", color: "var(--ai)", borderColor: "#C7D2FE", fontWeight: 700 }}
+            onClick={() => window.askEduAlertAI && window.askEduAlertAI(isStudent ? "Phân tích tình hình học tập của tôi và gợi ý lộ trình cải thiện kỳ tới" : `Phân tích nguyên nhân và lập kế hoạch can thiệp cho sinh viên ${studentId}`)}
+          >
+            ✦ Hỏi AI về {isStudent ? "hồ sơ của tôi" : studentId}
+          </button>
+          {!isStudent && assessment && (
             <button
               type="button"
               className="small"
@@ -2158,117 +2211,10 @@ function AdminTab({
 }
 
 // ============================================================================
-// 11. TAB 7: ADVISOR COPILOT
+// 11. TAB 7: ADVISOR COPILOT (HYBRID GEMINI + RAG + READ-ONLY SQL)
 // ============================================================================
-function AdvisorCopilotTab() {
-  const [query, setQuery] = useState("");
-  const [messages, setMessages] = useState([
-    {
-      sender: "bot",
-      text: "Xin chào Thầy/Cô Cố vấn học tập! Tôi là EduAlert Advisor Copilot. Tôi có thể hỗ trợ giải đáp nhanh các điều khoản Thông tư 08/2021/TT-BGDĐT hoặc tra cứu danh sách học vụ trong cơ sở dữ liệu.",
-      citation: "Thông tư 08/2021/TT-BGDĐT · Điều 11",
-    },
-  ]);
-  const [loading, setLoading] = useState(false);
-
-  const handleSend = async (qText) => {
-    const textToSend = qText || query;
-    if (!textToSend.trim()) return;
-
-    const userMsg = { sender: "user", text: textToSend };
-    setMessages((prev) => [...prev, userMsg]);
-    setQuery("");
-    setLoading(true);
-
-    try {
-      const res = await fetch("/api/copilot/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: textToSend, question: textToSend }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const cit = Array.isArray(data.citations) ? data.citations.join(" · ") : (data.citations || data.legal_basis || "");
-        setMessages((prev) => [
-          ...prev,
-          {
-            sender: "bot",
-            text: data.answer || "Không có phản hồi từ hệ thống.",
-            citation: cit,
-            sql: data.sql_executed || data.sql_query,
-          },
-        ]);
-      } else {
-        const errJson = await res.json().catch(() => ({}));
-        setMessages((prev) => [
-          ...prev,
-          { sender: "bot", text: "Xin lỗi: " + (errJson.error || "Đã xảy ra lỗi khi kết nối tới Copilot Service.") },
-        ]);
-      }
-    } catch (e) {
-      setMessages((prev) => [
-        ...prev,
-        { sender: "bot", text: "Lỗi kết nối Copilot: " + e.message },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const chips = [
-    "Điều kiện cảnh báo học tập và buộc thôi học theo Thông tư 08?",
-    "sinh viên a03 bị vấn đề làm sao khắc phục",
-    "Trường hợp nào sinh viên bị cảnh báo học tập lần thứ hai?",
-    "Danh sách sinh viên nợ trên 10 tín chỉ lớp DH23CS01",
-    "Vì sao sinh viên SV002 bị xếp vào mức Cần chú ý?",
-  ];
-
-  return (
-    <div className="card copilot-container">
-      <h2>🤖 EduAlert Advisor Copilot (RAG Quy chế &amp; Text-to-SQL An toàn)</h2>
-      <p className="hint">
-        Hệ thống truy xuất tăng cường (RAG) trích dẫn trực tiếp Điều 11 Thông tư 08/2021/TT-BGDĐT và sinh câu lệnh SQL chỉ đọc (Read-only) có kiểm soát.
-      </p>
-
-      <div className="copilot-chips">
-        {chips.map((chip, idx) => (
-          <button key={idx} type="button" className="chip-btn" onClick={() => handleSend(chip)}>
-            {chip}
-          </button>
-        ))}
-      </div>
-
-      <div className="chat-window">
-        {messages.map((m, idx) => (
-          <div key={idx} className={`chat-bubble ${m.sender}`}>
-            <div className="chat-text" style={{ whiteSpace: "pre-wrap" }}>{m.text}</div>
-            {m.citation && (
-              <div className="chat-citation">
-                <strong>Căn cứ pháp lý:</strong> {m.citation}
-              </div>
-            )}
-            {m.sql && (
-              <div className="chat-sql">
-                <code>{m.sql}</code>
-              </div>
-            )}
-          </div>
-        ))}
-        {loading && <div className="chat-bubble bot hint">Copilot đang phân tích quy chế...</div>}
-      </div>
-
-      <div className="chat-input-row">
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSend()}
-          placeholder="Nhập câu hỏi quy chế hoặc yêu cầu tra cứu..."
-        />
-        <button type="button" className="primary" onClick={() => handleSend()}>Gửi câu hỏi</button>
-      </div>
-    </div>
-  );
+function AdvisorCopilotTab({ activeUser }) {
+  return <AiAssistant activeUser={activeUser} />;
 }
 
 // ============================================================================
@@ -2727,67 +2673,83 @@ function RoleExplanationModal({ onClose }) {
 
           <div>
             <h4 style={{ margin: "0 0 8px", fontFamily: "var(--serif)", color: "var(--stamp-blue)" }}>
-              3. Ma trận Phân quyền Vai trò (RBAC Matrix)
+              3. Ma trận Phân quyền Vai trò 5 Cấp độ (RBAC Matrix)
             </h4>
-            <table className="data" style={{ fontSize: ".8rem" }}>
+            <table className="data" style={{ fontSize: ".78rem" }}>
               <thead>
                 <tr>
                   <th>Phân hệ Chức năng</th>
-                  <th>Cố vấn Học tập (ADVISOR)</th>
-                  <th>Phòng Quản lý Đào tạo (TRAINING_DEPT)</th>
-                  <th>Ban Chủ nhiệm Khoa (FACULTY_BOARD)</th>
-                  <th>Quản trị Hệ thống (ADMIN)</th>
+                  <th>LV1 · Sinh viên (STUDENT)</th>
+                  <th>LV2 · Cố vấn Học tập (ADVISOR)</th>
+                  <th>LV3 · Ban Chủ nhiệm Khoa (FACULTY_BOARD)</th>
+                  <th>LV4 · Phòng Quản lý Đào tạo (TRAINING_DEPT)</th>
+                  <th>LV5 · Quản trị Hệ thống (ADMIN)</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   <td><strong>M02 · Dashboard</strong></td>
-                  <td>Lớp phụ trách</td>
-                  <td>Toàn trường (180 SV)</td>
+                  <td><span className="badge b-bad">Ẩn hoàn toàn</span></td>
+                  <td>Lớp phụ trách (RLS)</td>
                   <td>Toàn khoa CNTT</td>
+                  <td>Toàn trường (180 SV)</td>
                   <td>Toàn hệ thống</td>
                 </tr>
                 <tr>
                   <td><strong>M03 &amp; M04 · Hồ sơ SV</strong></td>
+                  <td><span className="badge b-ok">Chỉ xem hồ sơ của mình &amp; What-If</span></td>
                   <td>Xem &amp; Thử nghiệm What-If</td>
-                  <td>Xem &amp; Tra cứu</td>
-                  <td>Xem toàn bộ</td>
+                  <td>Xem toàn khoa</td>
+                  <td>Xem &amp; Tra cứu toàn trường</td>
                   <td>Toàn quyền sửa điểm</td>
                 </tr>
                 <tr>
                   <td><strong>M05 · Cohort View</strong></td>
+                  <td><span className="badge b-bad">Ẩn hoàn toàn</span></td>
                   <td>Áp dụng RLS (Chỉ lớp mình)</td>
-                  <td>Xem &amp; Lọc toàn trường</td>
                   <td>Xem toàn khoa</td>
+                  <td>Xem &amp; Lọc toàn trường</td>
                   <td>Toàn quyền CRUD</td>
                 </tr>
                 <tr>
                   <td><strong>M06 · Đồ thị Sheaf</strong></td>
+                  <td><span className="badge b-bad">Ẩn hoàn toàn</span></td>
                   <td>Đồ thị lớp phụ trách</td>
-                  <td>Đồ thị toàn trường</td>
                   <td>Đồ thị toàn khoa</td>
+                  <td>Đồ thị toàn trường</td>
                   <td>Toàn quyền cấu hình</td>
                 </tr>
                 <tr>
                   <td><strong>M08 · Can thiệp Học vụ</strong></td>
+                  <td><span className="badge b-bad">Ẩn hoàn toàn</span></td>
                   <td>Tạo &amp; Sửa biên bản</td>
-                  <td>Phê duyệt &amp; Giám sát</td>
                   <td>Xem báo cáo</td>
+                  <td>Phê duyệt &amp; Giám sát</td>
                   <td>Toàn quyền kiểm toán</td>
                 </tr>
                 <tr>
                   <td><strong>M10 · Cấu hình Quy chế</strong></td>
+                  <td><span className="badge b-bad">Ẩn hoàn toàn</span></td>
                   <td><span className="badge b-bad">Chỉ đọc (Read-only)</span></td>
-                  <td><span className="badge b-ok">Sửa ngưỡng &amp; Đối soát</span></td>
                   <td><span className="badge b-bad">Chỉ đọc</span></td>
+                  <td><span className="badge b-ok">Sửa ngưỡng &amp; Đối soát</span></td>
                   <td><span className="badge b-ok">Toàn quyền</span></td>
                 </tr>
                 <tr>
                   <td><strong>M11 · Benchmark AI</strong></td>
+                  <td><span className="badge b-bad">Ẩn hoàn toàn</span></td>
                   <td>Chỉ xem chỉ số</td>
-                  <td>Chỉ xem</td>
                   <td><span className="badge b-ok">Kích hoạt Mô hình</span></td>
+                  <td>Chỉ xem</td>
                   <td>Toàn quyền</td>
+                </tr>
+                <tr>
+                  <td><strong>Trợ lý AI (Gemini + RAG)</strong></td>
+                  <td><span className="badge b-ok">Hỏi hồ sơ của mình &amp; Quy chế</span></td>
+                  <td>Tra cứu học vụ lớp phụ trách</td>
+                  <td>Tra cứu học vụ toàn khoa</td>
+                  <td>Tra cứu quy chế toàn trường</td>
+                  <td>Toàn quyền SQL Read-only</td>
                 </tr>
               </tbody>
             </table>
@@ -2805,7 +2767,12 @@ function RoleExplanationModal({ onClose }) {
 // 14. MAIN APP COMPONENT (ORCHESTRATOR)
 // ============================================================================
 function App() {
-  const [currentUsername, setCurrentUsername] = useState("cvht_lan");
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return sessionStorage.getItem("edualert_logged_in") === "true";
+  });
+  const [currentUsername, setCurrentUsername] = useState(() => {
+    return sessionStorage.getItem("edualert_username") || "cvht_lan";
+  });
   const [userRoles, setUserRoles] = useState([]);
   const [enforceRls, setEnforceRls] = useState(true);
   const [roleInfoModalOpen, setRoleInfoModalOpen] = useState(false);
@@ -2865,16 +2832,39 @@ function App() {
   // Active user object from roles
   const activeUser = useMemo(() => {
     if (userRoles.length > 0) {
-      return userRoles.find((u) => u.username === currentUsername) || userRoles[0];
+      const found = userRoles.find((u) => u.username === currentUsername);
+      if (found) return found;
     }
+    if (currentUsername.toLowerCase().startsWith("sv")) {
+      const sid = currentUsername.toUpperCase();
+      return {
+        username: currentUsername,
+        student_id: sid,
+        role: "STUDENT",
+        level: 1,
+        level_label: "LV1 · Sinh viên",
+        display_name: `Sinh viên (${sid})`,
+        assigned_classes: ["DH23CS02"],
+        can_edit_rules: false,
+        can_run_pipeline: false,
+        can_manage_models: false,
+        can_intervene: false,
+        rls_enforced: true,
+      };
+    }
+    const isDt = currentUsername === "daotao";
+    const isAdm = currentUsername === "admin";
+    const isBcn = currentUsername === "bcnkhoa";
     return {
       username: currentUsername,
-      role: currentUsername === "daotao" ? "TRAINING_DEPT" : (currentUsername === "admin" ? "ADMIN" : "ADVISOR"),
-      display_name: "TS. Nguyễn Thị Lan",
+      role: isDt ? "TRAINING_DEPT" : (isAdm ? "ADMIN" : (isBcn ? "FACULTY_BOARD" : "ADVISOR")),
+      level: isAdm ? 5 : (isDt ? 4 : (isBcn ? 3 : 2)),
+      level_label: isAdm ? "LV5 · Quản trị Hệ thống" : (isDt ? "LV4 · Phòng Đào tạo" : (isBcn ? "LV3 · BCN Khoa" : "LV2 · Cố vấn Học tập")),
+      display_name: isDt ? "Phòng Quản lý Đào tạo" : (isAdm ? "Quản trị Hệ thống" : (isBcn ? "Ban Chủ nhiệm Khoa CNTT" : "TS. Nguyễn Thị Lan")),
       assigned_classes: ["DH23CS01", "DH23CS02"],
-      can_edit_rules: currentUsername === "daotao" || currentUsername === "admin",
-      can_run_pipeline: true,
-      can_manage_models: currentUsername === "bcnkhoa" || currentUsername === "admin",
+      can_edit_rules: isDt || isAdm,
+      can_run_pipeline: isDt || isAdm,
+      can_manage_models: isBcn || isAdm,
       can_intervene: true,
       rls_enforced: currentUsername.startsWith("cvht_"),
     };
@@ -2979,8 +2969,50 @@ function App() {
 
   const handleUserChange = (newUsername) => {
     setCurrentUsername(newUsername);
-    showToast(`Đã chuyển sang vai trò: ${newUsername}`);
+    sessionStorage.setItem("edualert_username", newUsername);
+    const target = userRoles.find((u) => u.username === newUsername);
+    if (target && target.level === 1 && target.student_id) {
+      setStudentId(target.student_id);
+      setActiveTab("slip");
+      fetchAssessment(target.student_id);
+    }
+    showToast(`Đã chuyển sang vai trò: ${target ? target.display_name : newUsername}`);
   };
+
+  const handleLoginSuccess = (userData) => {
+    setCurrentUsername(userData.username);
+    setIsAuthenticated(true);
+    sessionStorage.setItem("edualert_logged_in", "true");
+    sessionStorage.setItem("edualert_username", userData.username);
+    if (userData.level === 1 && userData.student_id) {
+      setStudentId(userData.student_id);
+      setActiveTab("slip");
+      fetchAssessment(userData.student_id);
+    } else {
+      setActiveTab("dash");
+    }
+    showToast(`Đăng nhập thành công: ${userData.display_name} [${userData.level_label || userData.role}]`);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    sessionStorage.removeItem("edualert_logged_in");
+    sessionStorage.removeItem("edualert_username");
+    showToast("Đã đăng xuất an toàn khỏi hệ thống.");
+  };
+
+  useEffect(() => {
+    if (activeUser && (activeUser.level === 1 || activeUser.role === "STUDENT")) {
+      if (activeTab !== "slip" && activeTab !== "copilot") {
+        setActiveTab("slip");
+      }
+      const sid = activeUser.student_id || activeUser.username.toUpperCase();
+      if (studentId !== sid) {
+        setStudentId(sid);
+        fetchAssessment(sid);
+      }
+    }
+  }, [activeUser, activeTab, studentId, fetchAssessment]);
 
   const handleQuickPick = (sid) => {
     setStudentId(sid);
@@ -3198,6 +3230,15 @@ function App() {
     }
   };
 
+  if (!isAuthenticated) {
+    return (
+      <LoginScreen
+        onLoginSuccess={handleLoginSuccess}
+        userRoles={userRoles}
+      />
+    );
+  }
+
   return (
     <ErrorBoundary onReset={fetchDashboardBff}>
       <div>
@@ -3207,6 +3248,8 @@ function App() {
           onUserChange={handleUserChange}
           onExportClick={() => (window.location.href = "/api/reports/export")}
           onOpenRoleInfo={() => setRoleInfoModalOpen(true)}
+          onLogout={handleLogout}
+          activeUser={activeUser}
         />
 
         <NoticeBanner
@@ -3215,7 +3258,7 @@ function App() {
           enforceRls={enforceRls}
         />
 
-        <TabBar activeTab={activeTab} onTabSelect={setActiveTab} />
+        <TabBar activeTab={activeTab} onTabSelect={setActiveTab} userLevel={activeUser ? activeUser.level : 2} />
 
         <main>
           {/* Breadcrumb Contextual Navigation */}
@@ -3248,6 +3291,7 @@ function App() {
               onSimulate={handleSimulate}
               simResult={simResult}
               onOpenEditStudent={(stu) => setEditingStudent(stu)}
+              isStudent={activeUser && (activeUser.level === 1 || activeUser.role === "STUDENT")}
             />
           )}
 
@@ -3305,7 +3349,7 @@ function App() {
             />
           )}
 
-          {activeTab === "copilot" && <AdvisorCopilotTab />}
+          {activeTab === "copilot" && <AdvisorCopilotTab activeUser={activeUser} />}
 
           {activeTab === "hex" && (
             <HexagonalTab
@@ -3314,6 +3358,9 @@ function App() {
             />
           )}
         </main>
+
+        {/* Floating AI Assistant Drawer */}
+        <AiFloatingAssistant activeUser={activeUser} hidden={activeTab === "copilot"} />
 
         {/* Modal Dialogs for CRUD & Information */}
         {editingStudent && (

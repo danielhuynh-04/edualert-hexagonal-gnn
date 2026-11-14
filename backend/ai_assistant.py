@@ -48,12 +48,24 @@ def _load_dotenv() -> None:
 _load_dotenv()
 
 
-def _api_key() -> Optional[str]:
+def _api_key(override_key: Optional[str] = None) -> Optional[str]:
+    if override_key and override_key.strip():
+        return override_key.strip()
     return os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
 
 
-def _model() -> str:
+def _model(override_model: Optional[str] = None) -> str:
+    if override_model and override_model.strip():
+        return override_model.strip()
     return os.environ.get("GEMINI_MODEL", DEFAULT_MODEL)
+
+
+def set_gemini_config(api_key: Optional[str] = None, model: Optional[str] = None) -> Dict[str, Any]:
+    if api_key is not None:
+        os.environ["GEMINI_API_KEY"] = api_key.strip()
+    if model and model.strip():
+        os.environ["GEMINI_MODEL"] = model.strip()
+    return ai_status()
 
 
 def ai_status() -> Dict[str, Any]:
@@ -65,8 +77,8 @@ def ai_status() -> Dict[str, Any]:
         "mode": "HYBRID_GROUNDED" if enabled else "OFFLINE_RAG",
         "last_error": _last_error["message"],
         "how_to_enable": (
-            "Tạo khóa miễn phí tại https://aistudio.google.com/apikey rồi đặt biến môi trường "
-            "GEMINI_API_KEY (tệp .env cục bộ hoặc App Settings trên Azure)."
+            "Tạo khóa miễn phí tại https://aistudio.google.com/apikey rồi nhập trực tiếp trên giao diện "
+            "hoặc đặt biến môi trường GEMINI_API_KEY (tệp .env cục bộ hoặc App Settings trên Azure)."
         ),
     }
 
@@ -108,10 +120,11 @@ def _build_prompt(question: str, facts: Dict[str, Any], role: str, display_name:
     )
 
 
-def _call_gemini(prompt: str, history: List[Dict[str, str]]) -> Optional[str]:
-    key = _api_key()
+def _call_gemini(prompt: str, history: List[Dict[str, str]], api_key: Optional[str] = None, model: Optional[str] = None) -> Optional[str]:
+    key = _api_key(api_key)
     if not key:
         return None
+    use_model = _model(model)
 
     contents = []
     for turn in (history or [])[-6:]:
@@ -130,7 +143,7 @@ def _call_gemini(prompt: str, history: List[Dict[str, str]]) -> Optional[str]:
         "generationConfig": {"temperature": 0.35, "maxOutputTokens": 1400},
     }
     req = urllib.request.Request(
-        GEMINI_ENDPOINT.format(model=_model()),
+        GEMINI_ENDPOINT.format(model=use_model),
         data=json.dumps(payload).encode("utf-8"),
         headers={"Content-Type": "application/json", "x-goog-api-key": key},
         method="POST",
@@ -156,6 +169,8 @@ def ask_assistant(
     role: str = "ADVISOR",
     display_name: str = "",
     restrict_student_id: Optional[str] = None,
+    api_key: Optional[str] = None,
+    model: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Điểm vào duy nhất cho Copilot: luôn chạy tầng xác định trước, sau đó (tùy chọn) Gemini diễn đạt."""
     facts = answer_copilot_query(question, restrict_student_id=restrict_student_id)
@@ -165,19 +180,21 @@ def ask_assistant(
         return facts
 
     t0 = time.time()
-    generated = _call_gemini(_build_prompt(question, facts, role, display_name), history or [])
+    use_model = _model(model)
+    generated = _call_gemini(_build_prompt(question, facts, role, display_name), history or [], api_key=api_key, model=use_model)
     if generated:
         return {
             "answer": generated,
             "citations": facts.get("citations", []),
             "sql_executed": facts.get("sql_executed"),
-            "engine": f"gemini:{_model()}",
+            "engine": f"gemini:{use_model}",
             "grounded": True,
             "latency_ms": int((time.time() - t0) * 1000),
         }
 
     facts["engine"] = "rule-based-rag"
     facts["grounded"] = True
-    if _api_key() and _last_error["message"]:
-        facts["fallback_reason"] = "Gemini tạm thời không phản hồi — đã chuyển sang chế độ RAG offline."
+    if _api_key(api_key) and _last_error["message"]:
+        facts["fallback_reason"] = f"Gemini tạm thời không phản hồi ({_last_error['message'][:80]}) — đã chuyển sang chế độ RAG offline."
     return facts
+

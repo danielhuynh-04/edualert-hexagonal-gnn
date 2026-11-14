@@ -28,7 +28,7 @@ from backend.ml_pipeline import (
     FACTOR_META,
 )
 from backend.copilot import answer_copilot_query
-from backend.ai_assistant import ask_assistant, ai_status
+from backend.ai_assistant import ask_assistant, ai_status, set_gemini_config
 from src.domain.entities import SemesterSnapshot
 from src.application.use_cases import EvaluateStudentRiskUseCase
 from src.adapters.outbound.persistence_and_ml import (
@@ -1108,8 +1108,17 @@ def api_copilot_ask():
     if role == "STUDENT" and not restrict:
         return jsonify({"error": "Thiếu mã sinh viên cho phiên LV1"}), 400
     history = body.get("history") if isinstance(body.get("history"), list) else []
-    res = ask_assistant(q, history=history, role=role, display_name=body.get("display_name", ""),
-                        restrict_student_id=restrict)
+    api_key = (body.get("api_key") or "").strip() or None
+    model = (body.get("model") or "").strip() or None
+    res = ask_assistant(
+        q,
+        history=history,
+        role=role,
+        display_name=body.get("display_name", ""),
+        restrict_student_id=restrict,
+        api_key=api_key,
+        model=model,
+    )
     conn = get_connection()
     log_audit(conn, None, "COPILOT_ASK", "copilot", {"role": role, "engine": res.get("engine"), "q": q[:200]})
     conn.commit()
@@ -1121,10 +1130,19 @@ def api_copilot_ask():
     return jsonify(res)
 
 
-# 12b. GET /api/ai/status (Google Gemini / offline RAG status)
+# 12b. GET /api/ai/status & POST /api/ai/config (Google Gemini / offline RAG status & runtime key config)
 @app.route("/api/ai/status", methods=["GET"])
 def api_ai_status():
     return jsonify(ai_status())
+
+
+@app.route("/api/ai/config", methods=["POST"])
+def api_ai_config():
+    body = request.get_json(force=True, silent=True) or {}
+    key = body.get("api_key")
+    model = body.get("model")
+    status = set_gemini_config(api_key=key, model=model)
+    return jsonify(status)
 
 
 # 12c. Single-service fallbacks (khi chạy không có Node.js Gateway, ví dụ Azure App Service)

@@ -310,3 +310,4 @@ flowchart LR
 
 > **Lời kết của Thí sinh:**  
 > *"EduAlert là kết quả của quá trình nghiên cứu nghiêm túc kết hợp giữa Khoa học Máy tính Tiên tiến và bài toán quản lý giáo dục đại học thực tiễn. Em xin trân trọng cảm ơn quý Thầy Cô trong Hội đồng đã lắng nghe và kính mong nhận được những lời góp ý quý báu!"*
+

@@ -11,7 +11,7 @@
 [![Kiến trúc](https://img.shields.io/badge/Kiến_trúc-Hexagonal_(Ports_%26_Adapters)-C07F00?style=for-the-badge)](#2-kiến-trúc-lục-giác-hexagonal-architecture--ports--adapters)
 [![Kiểm thử](https://img.shields.io/badge/Kiểm_thử_tự_động-14%2F14_Passing-2E7D52?style=for-the-badge)](#9-kiểm-thử-tự-động--xác-thực-hệ-thống)
 
-> **🛠️ Techstack:** `Python 3.10+ (Hexagonal Core)` · `Node.js v24 (Enterprise BFF Gateway)` · `React 18 SPA (Offline Runtime & Impeccable Design)` · `PyTorch Geometric (Sheaf Attention GNN)` · `PostgreSQL 16 / SQLite 3NF (RLS & Immutable Audit Log)` · `Flask (Clean REST API)` · `Circuit Breaker & Token-Bucket Rate Limiter`
+> **🛠️ Techstack:** `Python 3.10+ (Hexagonal Core)` · `Node.js v24 (Enterprise BFF Gateway)` · `React 18 SPA (Offline Runtime & Impeccable Design)` · `Google Gemini AI API (Hybrid Grounded RAG + SQL)` · `PyTorch Geometric (Sheaf Attention GNN)` · `PostgreSQL 16 / SQLite 3NF (5-Level RBAC/RLS & Audit Log)` · `Microsoft Azure App Service (CI/CD + Docker)`
 
 **Tác giả:** **Huỳnh Lê Thanh Hải** · Cử nhân Khoa học Máy tính (Chương trình Tiên tiến — Chuyên ngành Cơ sở Dữ liệu)  
 **Đơn vị:** Trường Đại học Mở Thành phố Hồ Chí Minh (HCMC OU)  
@@ -19,7 +19,7 @@
 
 ---
 
-[ **🇻🇳 Tiếng Việt** | [🇬🇧 English](README_EN.md) | [🎤 **Kịch bản Thuyết trình**](docs/KICH_BAN_THUYET_TRINH.md) | [📐 **Thiết kế Impeccable**](docs/DESIGN.md) ]
+[ **🇻🇳 Tiếng Việt** | [🇬🇧 English](README_EN.md) | [🎤 **Kịch bản Thuyết trình**](docs/KICH_BAN_THUYET_TRINH.md) | [☁️ **Triển khai Azure**](docs/AZURE_DEPLOY_GUIDE.md) | [🚀 **Lộ trình Mở rộng**](docs/EXPANSION_ROADMAP.md) | [📐 **Thiết kế Impeccable**](docs/DESIGN.md) ]
 
 </div>
 
@@ -567,6 +567,26 @@ Starting Node.js Gateway Integration Tests on port 3001...
 
 ALL NODE.JS GATEWAY INTEGRATION TESTS PASSED (5/5)! 🎯
 ```
+
+---
+
+## 🔐 9.5 Hệ thống Đăng nhập 5 Cấp độ, Trợ lý AI Google Gemini & Triển khai Azure
+
+### 1. Cổng Đăng nhập Phân quyền 5 Cấp độ (M01 Level-Based Auth Gate)
+- **`LV1 · Sinh viên` (`sv002`, `sv003`, `SV001`–`SV180`)**: Cổng dịch vụ cá nhân (Self-Service). Chỉ truy cập phiếu cảnh báo cá nhân M03, bộ giả lập What-If M04 và Trợ lý AI; khóa hoàn toàn danh sách lớp và hồ sơ bạn học theo Nghị định 13/2023/NĐ-CP.
+- **`LV2 · Cố vấn Học tập` (`cvht_lan`, `cvht_minh`, `cvht_hung`)**: Áp dụng RLS theo lớp phụ trách, lập biên bản can thiệp M08, xem đồ thị Sheaf M06.
+- **`LV3 · Ban Chủ nhiệm Khoa` (`bcnkhoa`)**: Giám sát toàn khoa, đối sánh 6 mô hình AI và kích hoạt mô hình M11.
+- **`LV4 · Phòng Quản lý Đào tạo` (`daotao`)**: Cấu hình động 5 quy tắc Thông tư 08 (`R01–R05`), đối soát lại toàn trường tức thời, xuất báo cáo CSV/Excel M12.
+- **`LV5 · Quản trị Hệ thống` (`admin`)**: Toàn quyền hệ thống, giám sát Node.js Gateway Circuit Breaker và Audit Log.
+
+### 2. Trợ lý AI Lai (Google Gemini API + RAG Quy chế + Read-Only SQL)
+- Tầng xác định trích xuất dữ liệu thật từ SQLite/PostgreSQL và Điều 11 Thông tư 08/2021 trước, sau đó chuyển cho **Google Gemini (`gemini-2.5-flash` / `gemini-1.5-flash` — gói miễn phí tại Google AI Studio)** để diễn đạt tự nhiên và đề xuất lộ trình cải thiện 3–5 bước mà không bịa số liệu (Zero Hallucination).
+- Hỗ trợ dán khóa `GEMINI_API_KEY` trực tiếp trên giao diện web hoặc qua tệp `.env` / Azure App Settings; tự động fallback về RAG nội bộ khi offline.
+- Tích hợp nút nổi **✦ Hỏi trợ lý AI** ở góc phải dưới để tra cứu từ bất kỳ màn hình nào.
+
+### 3. Triển khai Đám mây Microsoft Azure (Azure for Students) & Hướng Mở rộng
+- Xem chi tiết từng bước triển khai lên Azure App Service (kèm `Dockerfile`, `backend/wsgi.py` và GitHub Actions `.github/workflows/azure-deploy.yml`) tại: **[☁️ Hướng dẫn Triển khai Azure](docs/AZURE_DEPLOY_GUIDE.md)**.
+- Xem 6 hướng mở rộng chiến lược (Enterprise SSO, Đa kênh Zalo/Telegram, Mobile PWA, LMS Hypergraph, Counterfactual Recourse, Federated Sheaf-GNN) tại: **[🚀 Lộ trình Mở rộng Đề xuất](docs/EXPANSION_ROADMAP.md)**.
 
 ---
 
