@@ -10,6 +10,10 @@ on:
       - 'main'
   workflow_dispatch:
 
+concurrency:
+  group: azure-deploy-edualert-ou-2026
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest

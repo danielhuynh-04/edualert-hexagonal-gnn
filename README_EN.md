@@ -8,10 +8,13 @@
 [![React 18](https://img.shields.io/badge/React-18_SPA_(Impeccable)-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL_16-3NF_%7C_RLS_%7C_Temporal-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![PyTorch Geometric](https://img.shields.io/badge/PyG-Sheaf_Attention_GNN-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch-geometric.readthedocs.io/)
+[![Azure Production](https://img.shields.io/badge/Microsoft_Azure-Live_Production-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white)](https://edualert-ou-2026-ffc7efguend9cbd4.eastasia-01.azurewebsites.net/)
 [![Architecture](https://img.shields.io/badge/Architecture-Hexagonal_(Ports_%26_Adapters)-C07F00?style=for-the-badge)](#2-hexagonal-architecture-ports--adapters)
 [![Tests](https://img.shields.io/badge/Automated_Tests-14%2F14_Passing-2E7D52?style=for-the-badge)](#9-testing--verification)
 
-> **🛠️ Techstack:** `Python 3.10+ (Hexagonal Core)` · `Node.js v24 (Enterprise BFF Gateway)` · `React 18 SPA (Offline Runtime & Impeccable Design)` · `Google Gemini AI API (Hybrid Grounded RAG + SQL)` · `PyTorch Geometric (Sheaf Attention GNN)` · `PostgreSQL 16 / SQLite 3NF (5-Level RBAC/RLS & Audit Log)` · `Microsoft Azure App Service (CI/CD + Docker)`
+> **🌐 Live Cloud Deployment (Microsoft Azure Production):** **[https://edualert-ou-2026-ffc7efguend9cbd4.eastasia-01.azurewebsites.net/](https://edualert-ou-2026-ffc7efguend9cbd4.eastasia-01.azurewebsites.net/)** *(Default first-time password for all accounts: `123` — Mandatory password change on first login)*
+>
+> **🛠️ Techstack:** `Python 3.10+ (Hexagonal Core & WSGI)` · `Node.js v24 (Enterprise BFF Gateway)` · `React 18 SPA (Offline Runtime & Impeccable Design)` · `Google Gemini & Gemma AI (5-Model Free-Tier Cascade + Least-Privilege SQL Explorer)` · `PyTorch Geometric / Scikit-Learn (Sheaf Attention GNN)` · `PostgreSQL 16 / SQLite 3NF (5-Level RBAC/RLS, SHA-256 Auth & Audit Log)` · `Microsoft Azure App Service (Linux Gunicorn + GitHub Actions OIDC CI/CD + Docker)`
 
 **Author:** **Huỳnh Lê Thanh Hải** · B.Sc. Computer Science (Advanced Program — Database Specialization)  
 **Institution:** Ho Chi Minh City Open University (HCMC OU)  

@@ -8,10 +8,13 @@
 [![React 18](https://img.shields.io/badge/React-18_SPA_(Impeccable)-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL_16-3NF_%7C_RLS_%7C_Temporal-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![PyTorch Geometric](https://img.shields.io/badge/PyG-Sheaf_Attention_GNN-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch-geometric.readthedocs.io/)
+[![Azure Production](https://img.shields.io/badge/Microsoft_Azure-Live_Production-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white)](https://edualert-ou-2026-ffc7efguend9cbd4.eastasia-01.azurewebsites.net/)
 [![Kiến trúc](https://img.shields.io/badge/Kiến_trúc-Hexagonal_(Ports_%26_Adapters)-C07F00?style=for-the-badge)](#2-kiến-trúc-lục-giác-hexagonal-architecture--ports--adapters)
 [![Kiểm thử](https://img.shields.io/badge/Kiểm_thử_tự_động-14%2F14_Passing-2E7D52?style=for-the-badge)](#9-kiểm-thử-tự-động--xác-thực-hệ-thống)
 
-> **🛠️ Techstack:** `Python 3.10+ (Hexagonal Core)` · `Node.js v24 (Enterprise BFF Gateway)` · `React 18 SPA (Offline Runtime & Impeccable Design)` · `Google Gemini AI API (Hybrid Grounded RAG + SQL)` · `PyTorch Geometric (Sheaf Attention GNN)` · `PostgreSQL 16 / SQLite 3NF (5-Level RBAC/RLS & Audit Log)` · `Microsoft Azure App Service (CI/CD + Docker)`
+> **🌐 Bản Triển khai Đám mây (Microsoft Azure Live Production):** **[https://edualert-ou-2026-ffc7efguend9cbd4.eastasia-01.azurewebsites.net/](https://edualert-ou-2026-ffc7efguend9cbd4.eastasia-01.azurewebsites.net/)** *(Mật khẩu mặc định lần đầu cho mọi tài khoản: `123` — Bắt buộc tự đổi mật khẩu khi đăng nhập lần đầu)*
+>
+> **🛠️ Techstack:** `Python 3.10+ (Hexagonal Core & WSGI)` · `Node.js v24 (Enterprise BFF Gateway)` · `React 18 SPA (Offline Runtime & Impeccable Design)` · `Google Gemini & Gemma AI (5-Model Free-Tier Cascade + Least-Privilege SQL Explorer)` · `PyTorch Geometric / Scikit-Learn (Sheaf Attention GNN)` · `PostgreSQL 16 / SQLite 3NF (5-Level RBAC/RLS, SHA-256 Auth & Audit Log)` · `Microsoft Azure App Service (Linux Gunicorn + GitHub Actions OIDC CI/CD + Docker)`
 
 **Tác giả:** **Huỳnh Lê Thanh Hải** · Cử nhân Khoa học Máy tính (Chương trình Tiên tiến — Chuyên ngành Cơ sở Dữ liệu)  
 **Đơn vị:** Trường Đại học Mở Thành phố Hồ Chí Minh (HCMC OU)  
@@ -19,9 +22,24 @@
 
 ---
 
-[ **🇻🇳 Tiếng Việt** | [🇬🇧 English](README_EN.md) | [🎤 **Kịch bản Thuyết trình**](docs/KICH_BAN_THUYET_TRINH.md) | [☁️ **Triển khai Azure**](docs/AZURE_DEPLOY_GUIDE.md) | [🚀 **Lộ trình Mở rộng**](docs/EXPANSION_ROADMAP.md) | [📐 **Thiết kế Impeccable**](docs/DESIGN.md) ]
+[ **🇻🇳 Tiếng Việt** | [🇬🇧 English](README_EN.md) | [🌐 **Live Demo (Azure)**](https://edualert-ou-2026-ffc7efguend9cbd4.eastasia-01.azurewebsites.net/) | [🎤 **Kịch bản Thuyết trình**](docs/KICH_BAN_THUYET_TRINH.md) | [☁️ **Triển khai Azure**](docs/AZURE_DEPLOY_GUIDE.md) | [🚀 **Lộ trình Mở rộng**](docs/EXPANSION_ROADMAP.md) | [📐 **Thiết kế Impeccable**](docs/DESIGN.md) ]
 
 </div>
+
+---
+
+## 🛠️ Bảng Đặc tả Stack Công nghệ Toàn diện (Production-Ready Tech Stack)
+
+| Tầng Kiến trúc (Layer) | Công nghệ & Thư viện Cốt lõi | Vai trò & Đặc tính Kỹ thuật trong EduAlert |
+| :--- | :--- | :--- |
+| **1. Kiến trúc Phần mềm (Software Architecture)** | **Hexagonal Architecture (Ports & Adapters)**, Clean Domain-Driven Design (DDD), Python `Protocol` & `@dataclass(frozen=True)` | Cô lập 100% lõi nghiệp vụ (`src/domain`, `src/ports`, `src/application`) khỏi Framework; bất biến hóa `AssessmentSlip` và thực thi **Quy tắc Vàng (Quy chế > Mô hình AI)**. |
+| **2. Backend & Thực thi Đám mây (Core API & WSGI)** | **Python 3.10 / 3.11**, **Flask 3.0**, **Gunicorn 21.2** (`--workers 1 --threads 4`), RESTful JSON API | Cung cấp 18+ REST API endpoints (`M01`–`M13`), What-If Simulator, Dynamic Rule Engine (`R01–R05`), CSV Batch Validator & Exporter. |
+| **3. Học máy & Đồ thị (Graph AI & XAI)** | **PyTorch Geometric (Sheaf Attention GNN)**, **Scikit-Learn**, **NumPy**, **Pandas**, **SHAP Attribution** | Huấn luyện & đối sánh 6 mô hình (`Logistic Regression`, `Random Forest`, `GCN`, `GAT`, `ST-GAT`, `Hybrid Sheaf-GNN`); giải quyết hiện tượng **dị thể (heterophily)** trên mạng học tập. |
+| **4. Trợ lý AI & Dò xét CSDL (Hybrid AI Copilot)** | **Google AI Studio Free-Tier Cascade** (`gemini-2.5-flash-lite`, `gemini-2.5-flash`, `gemini-2.0-flash`, `gemma-3-27b-it`) + **SQLite C-Authorizer (`set_authorizer`)** | Cấp quyền **Đọc Tối Thiểu (Least-Privilege Read-Only SQL)**: chỉ cho phép `SELECT`, chặn `INSERT/UPDATE/DELETE/DROP` và che cột nhạy cảm; hỗ trợ dò xét lỗ hổng can thiệp, phân biệt SV giỏi/yếu và lập kế hoạch 4 tuần kèm ghép cặp **Peer Mentor**. |
+| **5. Cơ sở Dữ liệu & Bảo mật (Database, Auth & RLS)** | **PostgreSQL 16** (`DATERANGE`, `ROW LEVEL SECURITY`, Materialized View) & **SQLite 3.x (18 bảng chuẩn 3NF)**, **SHA-256 Auth** | Cổng đăng nhập bắt buộc **5 cấp độ (`LV1`–`LV5`)** với mật khẩu mặc định `123` và **bắt buộc tự đổi mật khẩu lần đầu**; ẩn danh hóa theo **Nghị định 13/2023/NĐ-CP** và ghi nhật ký bất biến `audit_log`. |
+| **6. Cổng Điều phối BFF (Enterprise API Gateway)** | **Node.js v24 Native HTTP/Proxy**, **Circuit Breaker State Machine**, **Token-Bucket Rate Limiter** | Chống quá tải (`120 req/phút`), tự động ngắt mạch (`CLOSED` → `OPEN` → `HALF_OPEN`), gom dữ liệu BFF (`/api/bff/dashboard-overview`) và gắn mã truy vết phân tán `X-Correlation-Id`. |
+| **7. Giao diện Người dùng (Frontend SPA & DataViz)** | **React 18.3.1 SPA**, **Babel Standalone**, **HTML5 Interactive Canvas & SVG**, **Impeccable Design System** | Giao diện học thuật độ tương phản cao (`Ink/Paper`), 100% self-hosted runtime (chạy mượt cả khi mất CDN), đồ thị lực tương tác trực tiếp (`M06`), ngăn kéo AI nổi toàn cục và trình hiển thị Markdown an toàn. |
+| **8. Hạ tầng Cloud & CI/CD (DevOps & Production)** | **Microsoft Azure App Service (Linux B1)**, **GitHub Actions OIDC CI/CD**, **Docker Multi-Stage**, **Automated Unit Test Suite (14/14)** | Tự động kiểm thử (`9/9 Python` + `5/5 Node.js`) và triển khai liên tục (Continuous Deployment) từ nhánh `main` lên đám mây Microsoft Azure với chứng chỉ HTTPS. |
 
 ---
 
@@ -465,27 +483,40 @@ edualert/
 │  └─ server.js                          # Circuit Breaker, Token-Bucket Rate Limiter, X-Correlation-Id, Reverse Proxy
 ├─ frontend/                             # 💻 ADAPTER ĐẦU VÀO: React 18 SPA (Impeccable Visual Craftsmanship)
 │  ├─ index.html                         # SPA Mount Container & Bảng màu Ink/Paper chuẩn học thuật
+│  ├─ edualert_ux.css                    # Hệ thống giao diện mở rộng: Cổng đăng nhập M01, Ngăn kéo AI nổi & Markdown
+│  ├─ edualert_ux.jsx                    # LoginScreen 5 cấp + Đổi mật khẩu bắt buộc, AiAssistant, AiFloatingAssistant
 │  ├─ react_app.jsx                      # Ứng dụng React 18 SPA 8 Tabs hoàn chỉnh (Charter Serif, Tabular figures)
 │  ├─ react.min.js                       # Runtime React 18.3.1 (Tải sẵn offline 100%, không cần CDN)
 │  ├─ react-dom.min.js                   # Runtime ReactDOM 18.3.1 (Tải sẵn offline 100%)
 │  └─ babel.min.js                       # Trình biên dịch JSX Babel Standalone offline
 ├─ backend/                              # ⚙️ PYTHON CORE & ML PIPELINE (:8000)
-│  ├─ app.py                             # Máy chủ REST API (M01-M12 + Simulator + Copilot + Hexagonal Blueprint)
+│  ├─ app.py                             # Máy chủ REST API (Auth 5 cấp, M01-M13, Simulator, Copilot, BFF Cloud Fallback)
+│  ├─ wsgi.py                            # WSGI Entrypoint chuẩn Production cho Gunicorn / Azure App Service
+│  ├─ ai_assistant.py                    # Trợ lý AI Lai: Xoay vòng 5 mô hình Google AI Free-Tier + Least-Privilege SQL
+│  ├─ copilot.py                         # Động cơ NL-to-SQL Quyền tối thiểu (set_authorizer), Dò xét & Lập kế hoạch 4 tuần
 │  ├─ database.py                        # Khởi tạo CSDL 18 bảng chuẩn 3NF & Ghi nhật ký Audit
 │  ├─ seed_data.py                       # Bộ sinh dữ liệu nhân quả (180 SV, 4 học kỳ, nhóm đồ án dị thể)
 │  ├─ rule_engine.py                     # Động cơ quy chế Thông tư 08/2021/TT-BGDĐT tất định (R01-R05)
-│  ├─ ml_pipeline.py                     # Pipeline LogReg/RF/GCN/ST-GAT/Sheaf-GNN, Kiểm định hoán vị 5 seeds
-│  └─ copilot.py                         # RAG Thông tư 08/2021 + Text-to-SQL chỉ đọc có kiểm soát
+│  └─ ml_pipeline.py                     # Pipeline LogReg/RF/GCN/ST-GAT/Sheaf-GNN, Kiểm định hoán vị 5 seeds
 ├─ db/
 │  ├─ postgres_schema_rls.sql            # DDL PostgreSQL 16 (3NF, Ràng buộc DATERANGE, RLS, Materialized View)
 │  └─ edualert.db                        # File CSDL SQLite 3NF cục bộ (tự tạo khi khởi động)
 ├─ tests/
-│  ├─ test_edualert.py                   # Bộ kiểm thử tự động Hexagonal Core Python (7/7 tests pass)
+│  ├─ test_edualert.py                   # Bộ kiểm thử tự động Hexagonal Core Python (9/9 tests pass)
 │  └─ test_gateway.js                    # Bộ kiểm thử tích hợp Node.js v24 BFF Gateway (5/5 tests pass)
 ├─ docs/
+│  ├─ KICH_BAN_THUYET_TRINH.md           # Kịch bản thuyết trình 12 slides, 5 phút Live Demo & Bộ câu hỏi phản biện
+│  ├─ AZURE_DEPLOY_GUIDE.md              # Hướng dẫn triển khai đám mây Microsoft Azure App Service chi tiết
+│  ├─ EXPANSION_ROADMAP.md               # Lộ trình 6 hướng mở rộng chiến lược (Enterprise SSO, PWA, Federated GNN)
 │  ├─ PRODUCT.md                         # Định nghĩa sản phẩm, người dùng và mục tiêu học thuật (Chuẩn Impeccable)
 │  ├─ DESIGN.md                          # Hệ thống thiết kế Impeccable (Ink/Paper, Typography Serif, Không AI slop)
 │  └─ DATA_CARD.md                       # Đặc tả dữ liệu tổng hợp, giả định nhân quả & Nghị định 13/2023/NĐ-CP
+├─ .github/workflows/                    # 🔄 CI/CD TỰ ĐỘNG HÓA TRÊN GITHUB ACTIONS
+│  ├─ main_edualert-ou-2026.yml          # Pipeline OIDC triển khai tự động lên Microsoft Azure App Service
+│  └─ azure-deploy.yml                   # Pipeline kiểm thử tự động (9/9 Python + 5/5 Node.js BFF tests)
+├─ app.py                                # Root WSGI Entrypoint tự động nhận diện bởi Azure Oryx
+├─ Dockerfile                            # Cấu hình đóng gói Container Production (Gunicorn + Python 3.10)
+├─ requirements.txt                      # Danh sách thư viện Python Production
 ├─ package.json                          # Cấu hình dự án Node.js
 ├─ start_edualert.bat                    # Kịch bản khởi chạy 1-Click cho Python Core (:8000) + Node.js Gateway (:3000)
 ├─ README_EN.md                          # Bản tài liệu tiếng Anh (English Documentation)
@@ -570,22 +601,30 @@ ALL NODE.JS GATEWAY INTEGRATION TESTS PASSED (5/5)! 🎯
 
 ---
 
-## 🔐 9.5 Hệ thống Đăng nhập 5 Cấp độ, Trợ lý AI Google Gemini & Triển khai Azure
+## 🔐 9.5 Hệ thống Đăng nhập Bắt buộc 5 Cấp độ, Trợ lý AI Least-Privilege SQL & Đám mây Azure
 
-### 1. Cổng Đăng nhập Phân quyền 5 Cấp độ (M01 Level-Based Auth Gate)
-- **`LV1 · Sinh viên` (`sv002`, `sv003`, `SV001`–`SV180`)**: Cổng dịch vụ cá nhân (Self-Service). Chỉ truy cập phiếu cảnh báo cá nhân M03, bộ giả lập What-If M04 và Trợ lý AI; khóa hoàn toàn danh sách lớp và hồ sơ bạn học theo Nghị định 13/2023/NĐ-CP.
-- **`LV2 · Cố vấn Học tập` (`cvht_lan`, `cvht_minh`, `cvht_hung`)**: Áp dụng RLS theo lớp phụ trách, lập biên bản can thiệp M08, xem đồ thị Sheaf M06.
-- **`LV3 · Ban Chủ nhiệm Khoa` (`bcnkhoa`)**: Giám sát toàn khoa, đối sánh 6 mô hình AI và kích hoạt mô hình M11.
-- **`LV4 · Phòng Quản lý Đào tạo` (`daotao`)**: Cấu hình động 5 quy tắc Thông tư 08 (`R01–R05`), đối soát lại toàn trường tức thời, xuất báo cáo CSV/Excel M12.
-- **`LV5 · Quản trị Hệ thống` (`admin`)**: Toàn quyền hệ thống, giám sát Node.js Gateway Circuit Breaker và Audit Log.
+### 1. Cổng Đăng nhập Phân quyền 5 Cấp độ (`M01`) & Chính sách Mật khẩu Bắt buộc
+- **Mật khẩu mặc định lần đầu (`123`) & Bắt buộc tự đổi mật khẩu (`ChangePasswordModal`):**
+  - Toàn bộ tài khoản trong hệ thống khởi tạo với mật khẩu mặc định là **`123`**.
+  - Ngay trong lần đăng nhập đầu tiên bằng mật khẩu `123`, hệ thống trả về cờ `must_change_password = true` và yêu cầu người dùng **tự đặt mật khẩu mới (khác `123`)** trước khi vào bảng điều khiển. Mật khẩu mới được băm `SHA-256` lưu vào bảng `account_credentials` và ghi vết vào `audit_log`.
+- **Ma trận 5 Cấp độ Phân quyền (`LV1` → `LV5`):**
+  - **`LV1 · Sinh viên` (`sv002`, `sv003`, `SV001`–`SV180`)**: Cổng dịch vụ cá nhân (Self-Service). Chỉ truy cập phiếu cảnh báo cá nhân `M03`, bộ giả lập What-If `M04` và Trợ lý AI; khóa hoàn toàn danh sách lớp và hồ sơ bạn học theo Nghị định 13/2023/NĐ-CP.
+  - **`LV2 · Cố vấn Học tập` (`cvht_lan`, `cvht_minh`, `cvht_hung`)**: Áp dụng RLS theo lớp phụ trách, lập biên bản can thiệp `M08`/`M09`, xem đồ thị Sheaf `M06`.
+  - **`LV3 · Ban Chủ nhiệm Khoa` (`bcnkhoa`)**: Giám sát toàn khoa, đối sánh 6 mô hình AI và kích hoạt mô hình `M11`.
+  - **`LV4 · Phòng Quản lý Đào tạo` (`daotao`)**: Cấu hình động 5 quy tắc Thông tư 08 (`R01–R05`), đối soát lại toàn trường tức thời, xuất báo cáo CSV/Excel `M12`.
+  - **`LV5 · Quản trị Hệ thống` (`admin`)**: Toàn quyền hệ thống, giám sát Node.js Gateway Circuit Breaker và Audit Log `M13`.
 
-### 2. Trợ lý AI Lai (Google Gemini API + RAG Quy chế + Read-Only SQL)
-- Tầng xác định trích xuất dữ liệu thật từ SQLite/PostgreSQL và Điều 11 Thông tư 08/2021 trước, sau đó chuyển cho **Google Gemini (`gemini-2.5-flash` / `gemini-1.5-flash` — gói miễn phí tại Google AI Studio)** để diễn đạt tự nhiên và đề xuất lộ trình cải thiện 3–5 bước mà không bịa số liệu (Zero Hallucination).
-- Hỗ trợ dán khóa `GEMINI_API_KEY` trực tiếp trên giao diện web hoặc qua tệp `.env` / Azure App Settings; tự động fallback về RAG nội bộ khi offline.
-- Tích hợp nút nổi **✦ Hỏi trợ lý AI** ở góc phải dưới để tra cứu từ bất kỳ màn hình nào.
+### 2. Trợ lý AI Lai: Least-Privilege Read-Only SQL + Google AI Free-Tier Cascade
+- **Cơ chế Cấp quyền Tối thiểu cấp Engine (`SQLite Authorizer` + `PRAGMA query_only = ON`):**
+  - AI được phép truy vấn trực tiếp 18 bảng CSDL học vụ nhưng chỉ dưới quyền `SELECT` (`SQLITE_READ`), chặn tuyệt đối mọi thao tác sửa/xóa (`INSERT`, `UPDATE`, `DELETE`, `DROP` -> `SQLITE_DENY`) và tự động ẩn các cột nhạy cảm (`users.password_hash`, `anon_hash` -> `SQLITE_IGNORE`).
+- **Ba Trụ cột Nghiệp vụ (Dò xét · Hỗ trợ · Lập kế hoạch):**
+  1. **Dò xét CSDL chuyên sâu:** Phân biệt chính xác câu hỏi về *Top sinh viên thành tích tốt nhất* (`ORDER BY gpa_cumulative DESC`), *Top sinh viên nguy cơ cao nhất* (`ORDER BY risk_score DESC`), *So sánh chất lượng giữa các lớp*, *Sinh viên được AI Sheaf GNN phát hiện sớm*, và **Dò xét lỗ hổng can thiệp** (tìm sinh viên nguy cơ cao nhưng chưa có biên bản họp `LEFT JOIN interventions IS NULL`).
+  2. **Tự động lập kế hoạch 4 tuần & Ghép cặp Peer Mentor:** Tính toán công thức toán học xác định **ĐTB học kỳ mục tiêu** và **trần tín chỉ kỳ tới** cho từng sinh viên; tự động ghép cặp 1-1 giữa Top sinh viên giỏi nhất (`Mentor`) với Top sinh viên yếu nhất (`Mentee`) trong CSDL.
+  3. **Xoay vòng 5 Mô hình Google AI Studio Free-Tier (`FREE_TIER_CASCADE`):** Tự động xoay vòng qua `gemini-2.5-flash-lite`, `gemini-2.5-flash`, `gemini-2.0-flash-lite`, `gemini-2.0-flash` và `gemma-3-27b-it` (tổng hạn mức >18.000 câu hỏi miễn phí/ngày chỉ với 1 khóa `AIzaSy...`).
 
-### 3. Triển khai Đám mây Microsoft Azure (Azure for Students) & Hướng Mở rộng
-- Xem chi tiết từng bước triển khai lên Azure App Service (kèm `Dockerfile`, `backend/wsgi.py` và GitHub Actions `.github/workflows/azure-deploy.yml`) tại: **[☁️ Hướng dẫn Triển khai Azure](docs/AZURE_DEPLOY_GUIDE.md)**.
+### 3. Triển khai Đám mây Microsoft Azure (Live Production) & Hướng Mở rộng
+- **Đường dẫn Production trực tiếp:** **[https://edualert-ou-2026-ffc7efguend9cbd4.eastasia-01.azurewebsites.net/](https://edualert-ou-2026-ffc7efguend9cbd4.eastasia-01.azurewebsites.net/)**
+- Xem chi tiết từng bước triển khai lên Azure App Service tại: **[☁️ Hướng dẫn Triển khai Azure](docs/AZURE_DEPLOY_GUIDE.md)**.
 - Xem 6 hướng mở rộng chiến lược (Enterprise SSO, Đa kênh Zalo/Telegram, Mobile PWA, LMS Hypergraph, Counterfactual Recourse, Federated Sheaf-GNN) tại: **[🚀 Lộ trình Mở rộng Đề xuất](docs/EXPANSION_ROADMAP.md)**.
 
 ---
