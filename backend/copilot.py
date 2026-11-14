@@ -456,7 +456,7 @@ def answer_copilot_query(query: str, restrict_student_id: Optional[str] = None) 
             f"  {idx+1}. **{r['student_id']} — {r['full_name']}** (`{r['class_id']}`, CVHT: *{r['advisor_name']}*): "
             f"Nguy cơ **{r['risk_score']}%** (`{r['risk_level']}`) | ĐTB TL: **{r['gpa_cumulative']:.2f}** | "
             f"Nợ: **{r['accumulated_debt_credits']} TC** | Trạng thái: "
-            f"{'🚨 **CHƯA HỌP CAN THIỆP (0 biên bản)**' if r['meeting_cnt'] == 0 else f'Đã gặp {r[\"meeting_cnt\"]} lần'}"
+            + ("🚨 **CHƯA HỌP CAN THIỆP (0 biên bản)**" if r["meeting_cnt"] == 0 else f"Đã gặp {r['meeting_cnt']} lần")
             for idx, r in enumerate(urgent_rows)
         ])
 
