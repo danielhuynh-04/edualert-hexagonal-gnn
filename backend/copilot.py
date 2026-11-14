@@ -139,7 +139,7 @@ def extract_class_id(query: str, conn) -> Optional[str]:
     return None
 
 
-def answer_copilot_query(query: str) -> Dict[str, Any]:
+def answer_copilot_query(query: str, restrict_student_id: Optional[str] = None) -> Dict[str, Any]:
     q_raw = query.strip()
     q_low = q_raw.lower()
     conn = get_connection()
@@ -147,6 +147,31 @@ def answer_copilot_query(query: str) -> Dict[str, Any]:
 
     sid = extract_student_id(query, conn)
     cid = extract_class_id(query, conn)
+
+    # -------------------------------------------------------------------------
+    # RLS GUARD (LV1 · Sinh viên): chỉ được hỏi về hồ sơ của chính mình (NĐ 13/2023/NĐ-CP)
+    # -------------------------------------------------------------------------
+    if restrict_student_id:
+        own = restrict_student_id.upper()
+        asks_list = cid or any(k in q_low for k in [
+            "danh sách", "top", "thống kê", "bao nhiêu sinh viên", "nợ trên", "nợ quá", "toàn trường", "lớp"
+        ])
+        if (sid and sid != own) or (asks_list and not sid):
+            conn.close()
+            return {
+                "answer": (
+                    "🔒 **Yêu cầu bị từ chối bởi chính sách bảo vệ dữ liệu cá nhân.**\n\n"
+                    "Tài khoản Sinh viên (LV1) chỉ được tra cứu hồ sơ học vụ của **chính mình** "
+                    f"(`{own}`). Bạn có thể hỏi: *\"Tình hình học tập của tôi thế nào?\"* hoặc "
+                    "*\"Tôi cần làm gì để thoát cảnh báo học tập?\"*."
+                ),
+                "citations": ["Nghị định 13/2023/NĐ-CP về bảo vệ dữ liệu cá nhân", "Chính sách RLS EduAlert"],
+                "sql_executed": None,
+                "blocked": True,
+            }
+        personal = any(k in f" {q_low} " for k in [" tôi ", " mình ", " em ", " của tôi", "tình hình", "kết quả của"])
+        if not sid and personal:
+            sid = own
 
     is_remedy = any(k in q_low for k in [
         "khắc phục", "làm sao", "giải pháp", "lời khuyên", "hướng dẫn",

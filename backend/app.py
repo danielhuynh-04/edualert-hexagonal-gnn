@@ -28,6 +28,7 @@ from backend.ml_pipeline import (
     FACTOR_META,
 )
 from backend.copilot import answer_copilot_query
+from backend.ai_assistant import ask_assistant, ai_status
 from src.domain.entities import SemesterSnapshot
 from src.application.use_cases import EvaluateStudentRiskUseCase
 from src.adapters.outbound.persistence_and_ml import (
@@ -77,34 +78,117 @@ def serve_frontend_static(filename: str):
     return jsonify({"error": "Endpoint not found"}), 404
 
 
-# 1. POST /api/auth/login (M01)
+# ---------------------------------------------------------------------------
+# M01 · 5-LEVEL AUTHENTICATION (LV1 Sinh viên → LV5 Quản trị)
+# ---------------------------------------------------------------------------
+LEVEL_MAP = {"STUDENT": 1, "ADVISOR": 2, "FACULTY_BOARD": 3, "TRAINING_DEPT": 4, "ADMIN": 5}
+LEVEL_LABELS = {
+    1: "LV1 · Sinh viên",
+    2: "LV2 · Cố vấn Học tập",
+    3: "LV3 · Ban Chủ nhiệm Khoa",
+    4: "LV4 · Phòng Đào tạo",
+    5: "LV5 · Quản trị Hệ thống",
+}
+ROLE_LABELS = {
+    "ADMIN": "Quản trị Hệ thống (System Admin)",
+    "TRAINING_DEPT": "Phòng Quản lý Đào tạo (Registrar)",
+    "FACULTY_BOARD": "Ban Chủ nhiệm Khoa CNTT (Faculty Dean)",
+    "ADVISOR": "Cố vấn Học tập (Academic Advisor)",
+    "STUDENT": "Sinh viên (Student Portal)",
+}
+LEVEL_DESCRIPTIONS = {
+    1: "Xem phiếu cảnh báo M03 & mô phỏng What-If M04 của chính mình, hỏi trợ lý AI. Không xem được dữ liệu bạn khác.",
+    2: "Quản lý lớp được phân công (RLS), lập biên bản can thiệp M08, xem đồ thị M06 của lớp.",
+    3: "Giám sát toàn khoa, đối sánh mô hình AI và kích hoạt mô hình (M11).",
+    4: "Toàn trường, cấu hình ngưỡng quy chế TT08 (M10), đối soát lại, xuất báo cáo M12.",
+    5: "Toàn quyền: Gateway, Circuit Breaker, Audit Log, cấu hình hệ thống.",
+}
+
+
+def _permissions(role: str) -> dict:
+    return {
+        "can_edit_rules": role in ("ADMIN", "TRAINING_DEPT"),
+        "can_run_pipeline": role in ("ADMIN", "TRAINING_DEPT"),
+        "can_manage_models": role in ("ADMIN", "FACULTY_BOARD"),
+        "can_intervene": role in ("ADMIN", "ADVISOR", "TRAINING_DEPT"),
+        "rls_enforced": role in ("ADVISOR", "STUDENT"),
+    }
+
+
+def _student_profile(stu) -> dict:
+    sid = stu["student_id"]
+    return {
+        "user_id": sid,
+        "username": sid.lower(),
+        "role": "STUDENT",
+        "level": 1,
+        "level_label": LEVEL_LABELS[1],
+        "role_label": ROLE_LABELS["STUDENT"],
+        "display_name": f"{stu['full_name']} ({sid})",
+        "email": f"{sid.lower()}@student.ou.edu.vn",
+        "student_id": sid,
+        "assigned_classes": [stu["class_id"]],
+        "description": LEVEL_DESCRIPTIONS[1],
+        **_permissions("STUDENT"),
+    }
+
+
+# 1. POST /api/auth/login (M01 Level-Based Authentication Gate)
 @app.route("/api/auth/login", methods=["POST"])
 def api_login():
     body = request.get_json(force=True, silent=True) or {}
-    username = (body.get("username") or "cvht_lan").strip()
+    raw = (body.get("username") or "").strip()
+    if not raw:
+        return jsonify({"error": "Vui lòng nhập tên đăng nhập hoặc mã số sinh viên."}), 400
+
     conn = get_connection()
-    user = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+    stu = conn.execute("SELECT * FROM students WHERE UPPER(student_id) = ?", (raw.upper(),)).fetchone()
+    if stu:
+        profile = _student_profile(stu)
+        profile["token"] = hashlib.sha256(f"session::student::{stu['student_id']}".encode()).hexdigest()[:32]
+        log_audit(conn, None, "LOGIN", "students", {"student_id": stu["student_id"], "level": 1})
+        conn.commit()
+        conn.close()
+        return jsonify(profile)
+
+    user = conn.execute("SELECT * FROM users WHERE LOWER(username) = ?", (raw.lower(),)).fetchone()
     if not user:
-        user = conn.execute("SELECT * FROM users LIMIT 1").fetchone()
+        conn.close()
+        return jsonify({"error": f"Không tìm thấy tài khoản '{raw}'. Thử: admin, daotao, bcnkhoa, cvht_lan, sv002."}), 401
+
     advisor = conn.execute("SELECT * FROM advisors WHERE user_id = ?", (user["user_id"],)).fetchone()
-    token = hashlib.sha256(f"session::{user['username']}".encode()).hexdigest()[:32]
+    classes = []
+    if advisor:
+        classes = [r["class_id"] for r in conn.execute(
+            "SELECT class_id FROM classes WHERE advisor_id = ? ORDER BY class_id", (advisor["advisor_id"],)
+        ).fetchall()]
     log_audit(conn, user["user_id"], "LOGIN", "users", {"username": user["username"], "role": user["role"]})
     conn.commit()
     conn.close()
+
+    role = user["role"]
+    level = LEVEL_MAP.get(role, 2)
     return jsonify(
         {
-            "token": token,
+            "token": hashlib.sha256(f"session::{user['username']}".encode()).hexdigest()[:32],
             "user_id": user["user_id"],
             "username": user["username"],
-            "role": user["role"],
+            "role": role,
+            "role_label": ROLE_LABELS.get(role, role),
+            "level": level,
+            "level_label": LEVEL_LABELS[level],
+            "display_name": advisor["full_name"] if advisor else ROLE_LABELS.get(role, role),
             "email": user["email"],
             "advisor_name": advisor["full_name"] if advisor else "Quản trị / Phòng Đào tạo",
-            "advisor_id": advisor["advisor_id"] if advisor else 1,
+            "advisor_id": advisor["advisor_id"] if advisor else None,
+            "assigned_classes": classes,
+            "description": LEVEL_DESCRIPTIONS[level],
+            **_permissions(role),
         }
     )
 
 
-# 1b. GET /api/auth/roles (M01 RBAC & RLS Role Matrix)
+# 1b. GET /api/auth/roles (M01 RBAC & RLS Role Matrix — 5 levels)
 @app.route("/api/auth/roles", methods=["GET"])
 def api_auth_roles():
     conn = get_connection()
@@ -120,35 +204,32 @@ def api_auth_roles():
         ORDER BY u.user_id
         """
     ).fetchall()
+    demo_students = conn.execute(
+        "SELECT student_id, full_name, class_id FROM students WHERE student_id IN ('SV002', 'SV003') ORDER BY student_id"
+    ).fetchall()
     conn.close()
 
-    ROLE_LABELS = {
-        "ADMIN": "Quản trị Hệ thống (System Admin)",
-        "TRAINING_DEPT": "Phòng Quản lý Đào tạo (Registrar)",
-        "FACULTY_BOARD": "Ban Chủ nhiệm Khoa CNTT (Faculty Dean)",
-        "ADVISOR": "Cố vấn Học tập (Academic Advisor)",
-    }
-
-    role_list = []
+    role_list = [_student_profile(s) for s in demo_students]
     for u in users:
         classes = [c.strip() for c in u["assigned_classes"].split(",")] if u["assigned_classes"] else []
         role_key = u["role"]
+        level = LEVEL_MAP.get(role_key, 2)
         role_list.append(
             {
                 "user_id": u["user_id"],
                 "username": u["username"],
                 "role": role_key,
+                "level": level,
+                "level_label": LEVEL_LABELS[level],
                 "role_label": ROLE_LABELS.get(role_key, role_key),
-                "display_name": u["advisor_name"] or u["username"],
+                "display_name": u["advisor_name"] or ROLE_LABELS.get(role_key, u["username"]),
                 "email": u["email"],
                 "assigned_classes": classes,
-                "can_edit_rules": role_key in ("ADMIN", "TRAINING_DEPT"),
-                "can_run_pipeline": role_key in ("ADMIN", "TRAINING_DEPT"),
-                "can_manage_models": role_key in ("ADMIN", "FACULTY_BOARD"),
-                "can_intervene": role_key in ("ADMIN", "ADVISOR", "TRAINING_DEPT"),
-                "rls_enforced": role_key == "ADVISOR",
+                "description": LEVEL_DESCRIPTIONS[level],
+                **_permissions(role_key),
             }
         )
+    role_list.sort(key=lambda r: r["level"])
     return jsonify({"roles": role_list})
 
 
@@ -1022,12 +1103,64 @@ def api_copilot_ask():
     q = (body.get("query") or body.get("question") or "").strip()
     if not q:
         return jsonify({"error": "Vui lòng nhập câu hỏi"}), 400
-    res = answer_copilot_query(q)
+    role = (body.get("role") or "ADVISOR").upper()
+    restrict = (body.get("student_id") or "").upper() if role == "STUDENT" else None
+    if role == "STUDENT" and not restrict:
+        return jsonify({"error": "Thiếu mã sinh viên cho phiên LV1"}), 400
+    history = body.get("history") if isinstance(body.get("history"), list) else []
+    res = ask_assistant(q, history=history, role=role, display_name=body.get("display_name", ""),
+                        restrict_student_id=restrict)
+    conn = get_connection()
+    log_audit(conn, None, "COPILOT_ASK", "copilot", {"role": role, "engine": res.get("engine"), "q": q[:200]})
+    conn.commit()
+    conn.close()
     # Ensure client compatibility for both citations and legal_basis/sql_query
     if "citations" in res and isinstance(res["citations"], list):
         res["legal_basis"] = " · ".join(res["citations"])
     res["sql_query"] = res.get("sql_executed")
     return jsonify(res)
+
+
+# 12b. GET /api/ai/status (Google Gemini / offline RAG status)
+@app.route("/api/ai/status", methods=["GET"])
+def api_ai_status():
+    return jsonify(ai_status())
+
+
+# 12c. Single-service fallbacks (khi chạy không có Node.js Gateway, ví dụ Azure App Service)
+_GATEWAY_STATE = {"circuit_breaker_state": "CLOSED"}
+
+
+@app.route("/api/bff/dashboard-overview", methods=["GET"])
+def api_bff_dashboard_overview():
+    stats = api_stats_overview().get_json()
+    models = api_get_models().get_json().get("models", [])
+    active = next((m for m in models if m.get("is_active")), models[0] if models else None)
+    total = max(1, stats.get("total_students", 1))
+    return jsonify(
+        {
+            "stats": stats,
+            "active_model": active,
+            "gateway_telemetry": {
+                "circuit_breaker_state": _GATEWAY_STATE["circuit_breaker_state"],
+                "avg_latency_ms": 0,
+                "correlation_id": "flask-direct",
+                "mode": "Flask single-service (Azure App Service)",
+            },
+            "triage_urgency_ratio": round(stats.get("counts", {}).get("HIGH_RISK", 0) / total * 100, 1),
+        }
+    )
+
+
+@app.route("/api/gateway/health", methods=["GET"])
+def api_gateway_health():
+    return jsonify({"status": "ok", "gateway": "flask-direct", **_GATEWAY_STATE})
+
+
+@app.route("/api/gateway/circuit-breaker/reset", methods=["POST"])
+def api_gateway_cb_reset():
+    _GATEWAY_STATE["circuit_breaker_state"] = "CLOSED"
+    return jsonify({"status": "reset", **_GATEWAY_STATE})
 
 
 @app.route("/api/audit", methods=["GET"])
@@ -1085,6 +1218,11 @@ def api_architecture_blueprint():
 
 
 if __name__ == "__main__":
+    import os
+
     ensure_initialized()
-    print("EduAlert Full-Stack Server starting on http://127.0.0.1:8000")
-    app.run(host="127.0.0.1", port=8000, debug=False)
+    host = os.environ.get("HOST", "127.0.0.1")
+    port = int(os.environ.get("PORT", "8000"))
+    print(f"EduAlert Full-Stack Server starting on http://{host}:{port}")
+    print(f"AI Assistant: {ai_status()['provider']} — {ai_status()['model']}")
+    app.run(host=host, port=port, debug=False)
