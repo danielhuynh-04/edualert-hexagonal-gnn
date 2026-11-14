@@ -43,19 +43,35 @@ FREE_TIER_CASCADE = [
 _last_error: Dict[str, Any] = {"message": None, "at": None}
 
 
+PERSISTENT_CONFIG_PATHS = [
+    Path("/home/site/edualert_ai_config.json"),
+    Path(__file__).resolve().parent.parent / ".edualert_ai_config.json",
+]
+
+
 def _load_dotenv() -> None:
-    """Nạp biến môi trường từ tệp .env ở thư mục gốc dự án (nếu có) — không cần python-dotenv."""
+    """Nạp biến môi trường từ tệp .env hoặc file cấu hình bền vững trên Azure (/home/site)."""
     env_path = Path(__file__).resolve().parent.parent / ".env"
-    if not env_path.exists():
-        return
-    for line in env_path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, val = line.split("=", 1)
-        key, val = key.strip(), val.strip().strip('"').strip("'")
-        if key and key not in os.environ:
-            os.environ[key] = val
+    if env_path.exists():
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, val = line.split("=", 1)
+            key, val = key.strip(), val.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = val
+    for cfg_path in PERSISTENT_CONFIG_PATHS:
+        try:
+            if cfg_path.exists():
+                data = json.loads(cfg_path.read_text(encoding="utf-8"))
+                if data.get("api_key") and not os.environ.get("GEMINI_API_KEY"):
+                    os.environ["GEMINI_API_KEY"] = data["api_key"]
+                if data.get("model") and not os.environ.get("GEMINI_MODEL"):
+                    os.environ["GEMINI_MODEL"] = data["model"]
+                break
+        except Exception:
+            pass
 
 
 _load_dotenv()
@@ -64,6 +80,8 @@ _load_dotenv()
 def _api_key(override_key: Optional[str] = None) -> Optional[str]:
     if override_key and override_key.strip():
         return override_key.strip()
+    if not os.environ.get("GEMINI_API_KEY"):
+        _load_dotenv()
     return os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
 
 
@@ -78,6 +96,18 @@ def set_gemini_config(api_key: Optional[str] = None, model: Optional[str] = None
         os.environ["GEMINI_API_KEY"] = api_key.strip()
     if model and model.strip():
         os.environ["GEMINI_MODEL"] = model.strip()
+    # Lưu bền vững xuống ổ đĩa máy chủ (/home/site trên Azure) để mọi giám khảo truy cập từ xa đều dùng được
+    payload = {
+        "api_key": os.environ.get("GEMINI_API_KEY", ""),
+        "model": os.environ.get("GEMINI_MODEL", DEFAULT_MODEL),
+    }
+    for cfg_path in PERSISTENT_CONFIG_PATHS:
+        try:
+            if cfg_path.parent.exists():
+                cfg_path.write_text(json.dumps(payload), encoding="utf-8")
+                break
+        except Exception:
+            continue
     return ai_status()
 
 
