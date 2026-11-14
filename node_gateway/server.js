@@ -146,7 +146,7 @@ const server = http.createServer(async (req, res) => {
           uptimeSec: Math.floor((Date.now() - circuitBreaker.uptimeStart) / 1000),
         },
         correlation_id: correlationId,
-        design_system: "Impeccable Visual Craftsmanship (Charter Serif + Tabular Figures)",
+        design_system: "Academic Authority & Editorial Archival Design System (Charter Serif + Tabular Figures)",
         compliance_standards: [
           "Circular 08/2021/TT-BGDĐT (Article 11 — Mandatory Override)",
           "Decree 13/2023/NĐ-CP (SHA-256 Student Anonymization)",

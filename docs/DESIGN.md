@@ -1,14 +1,14 @@
-# DESIGN CONTEXT — EduAlert Design System
+# DESIGN SYSTEM — EduAlert Academic Diagnostic Ledger
 
-*Crafted in accordance with the [Impeccable](https://github.com/pbakaus/impeccable) visual craftsmanship and anti-slop guidelines.*
+*Architectural & Visual Specification — Ho Chi Minh City Open University (HCMC OU).*
 
 ## 1. Visual Philosophy: The Academic Diagnostic Ledger
 - **Core Metaphor:** A hybrid of an **Official University Registrar's Seal of Record** and a **Modern Scientific Computing Diagnostic Terminal**.
-- **The Anti-AI-Slop Manifesto:**
-  - ❌ **No Inter-for-everything:** Uses an authoritative academic serif (`Charter`, `Bitstream Charter`, `Cambria`, `Georgia`) for institutional credibility, headings, and stamps; paired with a crisp system sans-serif and tabular monospace numerals for metrics and tables.
-  - ❌ **No generic purple-to-blue neon gradients:** The palette is grounded in authentic institutional paper and ink (`#0F172A` Slate Ink, `#F8FAFC` Archival Paper, `#1E3A8A` Academic Blue).
-  - ❌ **No cards nested inside cards:** Flat surfaces differentiated by purposeful hairline dividers (`#E2E8F0`), subtle elevation, and crisp typographic weight.
-  - ❌ **No low-contrast gray text on colored badges:** High-contrast WCAG AAA compliance across all alert states.
+- **Core Typography & Layout Principles:**
+  - **Academic Serif & Tabular Monospace:** Uses an authoritative academic serif (`Charter`, `Bitstream Charter`, `Cambria`, `Georgia`) for institutional headings and stamps; paired with a crisp system sans-serif and tabular monospace numerals for metrics and tables.
+  - **Archival Paper & Ink Palette:** Grounded in authentic institutional paper and ink (`#0F172A` Slate Ink, `#F8FAFC` Archival Paper, `#1E3A8A` Academic Blue).
+  - **Clean Structural Hierarchy:** Flat surfaces differentiated by purposeful hairline dividers (`#E2E8F0`), subtle elevation, and crisp typographic weight.
+  - **High-Contrast Accessibility:** WCAG AAA compliance across all alert states (`HIGH_RISK`, `ATTENTION`, `NORMAL`).
 
 ## 2. Color Palette & Semantic Tokens
 

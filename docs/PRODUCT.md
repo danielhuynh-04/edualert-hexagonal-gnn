@@ -1,6 +1,6 @@
-# PRODUCT CONTEXT — EduAlert
+# PRODUCT SPECIFICATION — EduAlert
 
-*Crafted in accordance with the [Impeccable](https://github.com/pbakaus/impeccable) product definition standard.*
+*Academic Learning Analytics & Early Intervention Platform — Ho Chi Minh City Open University (HCMC OU).*
 
 ## 1. Product Identity & Purpose
 - **Product Name:** EduAlert (Hệ thống Cảnh báo Sớm Kết quả Học tập Đa cấp độ)

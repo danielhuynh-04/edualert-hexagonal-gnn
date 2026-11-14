@@ -1,45 +1,46 @@
 <div align="center">
 
-# 🎓 EduAlert — Hệ thống Cảnh báo Sớm Kết quả Học tập Đa cấp độ
+# EduAlert — Hệ thống Cảnh báo Sớm Kết quả Học tập Đa cấp độ
 ### *Hệ thống Kết hợp Quy chế Đào tạo (Thông tư 08/2021) & Mạng Nơ-ron Đồ thị Sheaf Attention trên Kiến trúc Lục giác (Hexagonal Architecture)*
 
-[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-[![Node.js v24](https://img.shields.io/badge/Node.js-v24_BFF_Gateway-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
-[![React 18](https://img.shields.io/badge/React-18_SPA_(Impeccable)-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
-[![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL_16-3NF_%7C_RLS_%7C_Temporal-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/Flask-3.0_WSGI-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
+[![Node.js](https://img.shields.io/badge/Node.js-v24_BFF_Gateway-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-18.3_SPA-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![PyTorch Geometric](https://img.shields.io/badge/PyG-Sheaf_Attention_GNN-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch-geometric.readthedocs.io/)
-[![Azure Production](https://img.shields.io/badge/Microsoft_Azure-Live_Production-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white)](https://edualert-ou-2026-ffc7efguend9cbd4.eastasia-01.azurewebsites.net/)
-[![Kiến trúc](https://img.shields.io/badge/Kiến_trúc-Hexagonal_(Ports_%26_Adapters)-C07F00?style=for-the-badge)](#2-kiến-trúc-lục-giác-hexagonal-architecture--ports--adapters)
-[![Kiểm thử](https://img.shields.io/badge/Kiểm_thử_tự_động-14%2F14_Passing-2E7D52?style=for-the-badge)](#9-kiểm-thử-tự-động--xác-thực-hệ-thống)
-
-> **🌐 Bản Triển khai Đám mây (Microsoft Azure Live Production):** **[https://edualert-ou-2026-ffc7efguend9cbd4.eastasia-01.azurewebsites.net/](https://edualert-ou-2026-ffc7efguend9cbd4.eastasia-01.azurewebsites.net/)** *(Mật khẩu mặc định lần đầu cho mọi tài khoản: `123` — Bắt buộc tự đổi mật khẩu khi đăng nhập lần đầu)*
->
-> **🛠️ Techstack:** `Python 3.10+ (Hexagonal Core & WSGI)` · `Node.js v24 (Enterprise BFF Gateway)` · `React 18 SPA (Offline Runtime & Impeccable Design)` · `Google Gemini & Gemma AI (5-Model Free-Tier Cascade + Least-Privilege SQL Explorer)` · `PyTorch Geometric / Scikit-Learn (Sheaf Attention GNN)` · `PostgreSQL 16 / SQLite 3NF (5-Level RBAC/RLS, SHA-256 Auth & Audit Log)` · `Microsoft Azure App Service (Linux Gunicorn + GitHub Actions OIDC CI/CD + Docker)`
+[![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-ML_Pipeline-F7931E?style=for-the-badge&logo=scikitlearn&logoColor=white)](https://scikit-learn.org/)
+<br/>
+[![Google Gemini](https://img.shields.io/badge/Google_Gemini-2.5_Flash_%26_Gemma_3-4285F4?style=for-the-badge&logo=googlegemini&logoColor=white)](https://aistudio.google.com/)
+[![Google Cloud AI](https://img.shields.io/badge/Google_AI_Studio-Free_Tier_Cascade-EA4335?style=for-the-badge&logo=googlecloud&logoColor=white)](https://aistudio.google.com/apikey)
+[![Microsoft Azure](https://img.shields.io/badge/Microsoft_Azure-App_Service_Linux-0078D4?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0xMy4wNSA0LjI0TDYuNTYgMTguMDUgMiAxOGw1LjA5LTguNzYgNS45Ni01ek0xMy43NSA1LjMzTDIyIDE5Ljc2SDguNzRsNC45OC0zLjAyLTIuNTgtMy44MiAyLjYxLTcuNTl6Ii8+PC9zdmc+)](https://edualert-ou-2026-ffc7efguend9cbd4.eastasia-01.azurewebsites.net/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL_16-3NF_%7C_RLS-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![SQLite](https://img.shields.io/badge/SQLite_3-Least_Privilege_SQL-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
+[![Docker](https://img.shields.io/badge/Docker-Production_Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](Dockerfile)
+[![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-OIDC_CI%2FCD_14%2F14_Pass-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/danielhuynh-04/edualert-hexagonal-gnn/actions)
 
 **Tác giả:** **Huỳnh Lê Thanh Hải** · Cử nhân Khoa học Máy tính (Chương trình Tiên tiến — Chuyên ngành Cơ sở Dữ liệu)  
 **Đơn vị:** Trường Đại học Mở Thành phố Hồ Chí Minh (HCMC OU)  
-**GitHub:** [github.com/danielhuynh-04](https://github.com/danielhuynh-04) · **Kaggle:** [kaggle.com/lthanhhihunh](https://www.kaggle.com/lthanhhihunh) ·
+**GitHub:** [github.com/danielhuynh-04](https://github.com/danielhuynh-04) · **Kaggle:** [kaggle.com/lthanhhihunh](https://www.kaggle.com/lthanhhihunh) ·  
+**Triển khai Đám mây (Microsoft Azure Live):** **[https://edualert-ou-2026-ffc7efguend9cbd4.eastasia-01.azurewebsites.net/](https://edualert-ou-2026-ffc7efguend9cbd4.eastasia-01.azurewebsites.net/)** *(Mật khẩu mặc định lần đầu: `123` — Bắt buộc tự đổi mật khẩu khi đăng nhập)*
 
 ---
 
-[ **🇻🇳 Tiếng Việt** | [🇬🇧 English](README_EN.md) | [🌐 **Live Demo (Azure)**](https://edualert-ou-2026-ffc7efguend9cbd4.eastasia-01.azurewebsites.net/) | [🎤 **Kịch bản Thuyết trình**](docs/KICH_BAN_THUYET_TRINH.md) | [☁️ **Triển khai Azure**](docs/AZURE_DEPLOY_GUIDE.md) | [🚀 **Lộ trình Mở rộng**](docs/EXPANSION_ROADMAP.md) | [📐 **Thiết kế Impeccable**](docs/DESIGN.md) ]
+[ **Tiếng Việt** | [English](README_EN.md) | [**Live Production (Azure)**](https://edualert-ou-2026-ffc7efguend9cbd4.eastasia-01.azurewebsites.net/) | [**Kịch bản Thuyết trình**](docs/KICH_BAN_THUYET_TRINH.md) | [**Triển khai Azure**](docs/AZURE_DEPLOY_GUIDE.md) | [**Lộ trình Mở rộng**](docs/EXPANSION_ROADMAP.md) | [**Đặc tả Thiết kế**](docs/DESIGN.md) ]
 
 </div>
 
 ---
 
-## 🛠️ Bảng Đặc tả Stack Công nghệ Toàn diện (Production-Ready Tech Stack)
+## Hệ sinh thái Công nghệ (Production Technology Stack)
 
-| Tầng Kiến trúc (Layer) | Công nghệ & Thư viện Cốt lõi | Vai trò & Đặc tính Kỹ thuật trong EduAlert |
+| Phân tầng Hệ thống | Biểu tượng Công nghệ (Stack Badges) | Vai trò & Đặc tính Kỹ thuật trong EduAlert |
 | :--- | :--- | :--- |
-| **1. Kiến trúc Phần mềm (Software Architecture)** | **Hexagonal Architecture (Ports & Adapters)**, Clean Domain-Driven Design (DDD), Python `Protocol` & `@dataclass(frozen=True)` | Cô lập 100% lõi nghiệp vụ (`src/domain`, `src/ports`, `src/application`) khỏi Framework; bất biến hóa `AssessmentSlip` và thực thi **Quy tắc Vàng (Quy chế > Mô hình AI)**. |
-| **2. Backend & Thực thi Đám mây (Core API & WSGI)** | **Python 3.10 / 3.11**, **Flask 3.0**, **Gunicorn 21.2** (`--workers 1 --threads 4`), RESTful JSON API | Cung cấp 18+ REST API endpoints (`M01`–`M13`), What-If Simulator, Dynamic Rule Engine (`R01–R05`), CSV Batch Validator & Exporter. |
-| **3. Học máy & Đồ thị (Graph AI & XAI)** | **PyTorch Geometric (Sheaf Attention GNN)**, **Scikit-Learn**, **NumPy**, **Pandas**, **SHAP Attribution** | Huấn luyện & đối sánh 6 mô hình (`Logistic Regression`, `Random Forest`, `GCN`, `GAT`, `ST-GAT`, `Hybrid Sheaf-GNN`); giải quyết hiện tượng **dị thể (heterophily)** trên mạng học tập. |
-| **4. Trợ lý AI & Dò xét CSDL (Hybrid AI Copilot)** | **Google AI Studio Free-Tier Cascade** (`gemini-2.5-flash-lite`, `gemini-2.5-flash`, `gemini-2.0-flash`, `gemma-3-27b-it`) + **SQLite C-Authorizer (`set_authorizer`)** | Cấp quyền **Đọc Tối Thiểu (Least-Privilege Read-Only SQL)**: chỉ cho phép `SELECT`, chặn `INSERT/UPDATE/DELETE/DROP` và che cột nhạy cảm; hỗ trợ dò xét lỗ hổng can thiệp, phân biệt SV giỏi/yếu và lập kế hoạch 4 tuần kèm ghép cặp **Peer Mentor**. |
-| **5. Cơ sở Dữ liệu & Bảo mật (Database, Auth & RLS)** | **PostgreSQL 16** (`DATERANGE`, `ROW LEVEL SECURITY`, Materialized View) & **SQLite 3.x (18 bảng chuẩn 3NF)**, **SHA-256 Auth** | Cổng đăng nhập bắt buộc **5 cấp độ (`LV1`–`LV5`)** với mật khẩu mặc định `123` và **bắt buộc tự đổi mật khẩu lần đầu**; ẩn danh hóa theo **Nghị định 13/2023/NĐ-CP** và ghi nhật ký bất biến `audit_log`. |
-| **6. Cổng Điều phối BFF (Enterprise API Gateway)** | **Node.js v24 Native HTTP/Proxy**, **Circuit Breaker State Machine**, **Token-Bucket Rate Limiter** | Chống quá tải (`120 req/phút`), tự động ngắt mạch (`CLOSED` → `OPEN` → `HALF_OPEN`), gom dữ liệu BFF (`/api/bff/dashboard-overview`) và gắn mã truy vết phân tán `X-Correlation-Id`. |
-| **7. Giao diện Người dùng (Frontend SPA & DataViz)** | **React 18.3.1 SPA**, **Babel Standalone**, **HTML5 Interactive Canvas & SVG**, **Impeccable Design System** | Giao diện học thuật độ tương phản cao (`Ink/Paper`), 100% self-hosted runtime (chạy mượt cả khi mất CDN), đồ thị lực tương tác trực tiếp (`M06`), ngăn kéo AI nổi toàn cục và trình hiển thị Markdown an toàn. |
-| **8. Hạ tầng Cloud & CI/CD (DevOps & Production)** | **Microsoft Azure App Service (Linux B1)**, **GitHub Actions OIDC CI/CD**, **Docker Multi-Stage**, **Automated Unit Test Suite (14/14)** | Tự động kiểm thử (`9/9 Python` + `5/5 Node.js`) và triển khai liên tục (Continuous Deployment) từ nhánh `main` lên đám mây Microsoft Azure với chứng chỉ HTTPS. |
+| **1. Lõi Nghiệp vụ & Backend API** | ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white) ![Flask](https://img.shields.io/badge/Flask-3.0-000000?style=for-the-badge&logo=flask&logoColor=white) ![Gunicorn](https://img.shields.io/badge/Gunicorn-WSGI-499848?style=for-the-badge&logo=gunicorn&logoColor=white) | Thực thi **Kiến trúc Lục giác (Hexagonal Ports & Adapters)** độc lập framework (`src/domain`, `src/ports`, `src/application`), 20+ REST API endpoints (`M01`–`M13`), động cơ quy chế động Thông tư 08/2021 (`R01–R05`) và bộ mô phỏng kịch bản What-If. |
+| **2. Học máy Đồ thị & Giải thích XAI** | ![PyTorch](https://img.shields.io/badge/PyTorch_Geometric-Sheaf_GNN-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white) ![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-1.5-F7931E?style=for-the-badge&logo=scikitlearn&logoColor=white) ![NumPy](https://img.shields.io/badge/NumPy-Pandas-013243?style=for-the-badge&logo=numpy&logoColor=white) | Huấn luyện và đối sánh 6 mô hình (`Logistic Regression`, `Random Forest`, `GCN`, `GAT`, `ST-GAT`, `Hybrid Sheaf-GNN`); giải quyết hiện tượng **dị thể (heterophily)** trên mạng học tập, phân rã đóng góp đặc trưng SHAP và kiểm định hoán vị 5 seeds. |
+| **3. Trợ lý AI Google & Dò xét CSDL** | ![Google Gemini](https://img.shields.io/badge/Google_Gemini-2.5_Flash-4285F4?style=for-the-badge&logo=googlegemini&logoColor=white) ![Google AI](https://img.shields.io/badge/Google_AI_Studio-Gemma_3_27B-EA4335?style=for-the-badge&logo=google&logoColor=white) | Xoay vòng tự động **5 mô hình miễn phí của Google AI Studio** (`gemini-2.5-flash-lite`, `gemini-2.5-flash`, `gemini-2.0-flash-lite`, `gemini-2.0-flash`, `gemma-3-27b-it`) kết hợp truy vấn CSDL quyền tối thiểu (`Least-Privilege Read-Only SQL`) để dò xét lỗ hổng can thiệp, phân loại sinh viên giỏi/yếu và lập kế hoạch hành động 4 tuần. |
+| **4. Hạ tầng Đám mây Microsoft Azure & CI/CD** | ![Microsoft Azure](https://img.shields.io/badge/Microsoft_Azure-App_Service-0078D4?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0xMy4wNSA0LjI0TDYuNTYgMTguMDUgMiAxOGw1LjA5LTguNzYgNS45Ni01ek0xMy43NSA1LjMzTDIyIDE5Ljc2SDguNzRsNC45OC0zLjAyLTIuNTgtMy44MiAyLjYxLTcuNTl6Ii8+PC9zdmc+) ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-OIDC_Deploy-2088FF?style=for-the-badge&logo=githubactions&logoColor=white) ![Docker](https://img.shields.io/badge/Docker-Container-2496ED?style=for-the-badge&logo=docker&logoColor=white) | Triển khai Production trên **Azure App Service Linux (East Asia)** qua xác thực **Microsoft Entra ID Federated OIDC** không mật khẩu; tự động chạy 14/14 bài kiểm thử đơn vị và tích hợp trên mọi lượt đẩy mã nguồn. |
+| **5. Cơ sở Dữ liệu, Phân quyền 5 Cấp & Bảo mật** | ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16_RLS-4169E1?style=for-the-badge&logo=postgresql&logoColor=white) ![SQLite](https://img.shields.io/badge/SQLite_3-18_Tables_3NF-003B57?style=for-the-badge&logo=sqlite&logoColor=white) | Lược đồ 18 bảng chuẩn hóa 3NF, bảo mật cấp dòng **Row-Level Security (RLS)** 5 cấp độ (`LV1`–`LV5`), xác thực mật khẩu băm `SHA-256` (mặc định `123`, bắt buộc tự đổi lần đầu), `sqlite3.set_authorizer` chặn ghi/che cột nhạy cảm theo **Nghị định 13/2023/NĐ-CP** và bảng kiểm toán bất biến `audit_log`. |
+| **6. Cổng Điều phối BFF & Giao diện SPA** | ![Node.js](https://img.shields.io/badge/Node.js-v24_Gateway-339933?style=for-the-badge&logo=nodedotjs&logoColor=white) ![React](https://img.shields.io/badge/React-18.3_SPA-61DAFB?style=for-the-badge&logo=react&logoColor=black) ![HTML5](https://img.shields.io/badge/HTML5-Canvas_%26_SVG-E34F26?style=for-the-badge&logo=html5&logoColor=white) | Cổng BFF tích hợp **Circuit Breaker**, **Token-Bucket Rate Limiter** (`120 req/phút`), truy vết `X-Correlation-Id`; giao diện React 18 SPA tự chủ 100% runtime offline kèm đồ thị lực tương tác trực tiếp (`M06`). |
 
 ---
 
@@ -453,7 +454,7 @@ xychart-beta
 | **M02** | **Trang Tổng quan (Executive Dashboard)** | CVHT, Ban Chủ nhiệm, Phòng ĐT | 5 ô KPI Đỏ/Vàng/Xanh, bộ đếm phát hiện sớm, biểu đồ xu hướng 4 kỳ và bảng kiểm định công bằng phương thức tuyển sinh |
 | **M03** | **Phiếu Đánh giá Cá nhân & What-If** | CVHT | **Con dấu tròn đỏ/vàng/xanh xoay -5.5°**, thanh SHAP đối xứng qua 0, văn bản giải thích và bộ giả lập What-If tức thời |
 | **M04** | **Biểu đồ Diễn biến Điểm & Dự báo** | CVHT | Đường diễn biến GPA các kỳ, sàn quy chế TT08 theo năm và nét đứt dự báo ĐTB kỳ tới kèm khoảng tin cậy ($\pm 0.15$) |
-| **M05** | **Danh sách Toàn khóa (Cohort View & CRUD)** | CVHT, Ban Chủ nhiệm Khoa | Bộ lọc chuẩn Impeccable (Lớp, Rủi ro, Quy chế TT08, R01–R05, GPA, Tín chỉ nợ, Tìm kiếm, Sắp xếp); nút thao tác 1-click liên kết |
+| **M05** | **Danh sách Toàn khóa (Cohort View & CRUD)** | CVHT, Ban Chủ nhiệm Khoa | Bộ lọc đa tiêu chí (Lớp, Rủi ro, Quy chế TT08, R01–R05, GPA, Tín chỉ nợ, Tìm kiếm, Sắp xếp); nút thao tác 1-click liên kết |
 | **M06** | **Bản đồ Quan hệ Sinh viên (Sheaf Hero Canvas 1100×720)** | CVHT, Ban Chủ nhiệm Khoa | Đồ thị mạng diện rộng, cụm lớp sinh hoạt viền đứt nét mờ, viền đôi cho SV chạm TT08, nhãn số $\alpha_{vu}$ trên cạnh, zoom/pan và tìm MSSV |
 | **M07 & M10** | **Cấu hình Quy chế Đào tạo & Đối soát Toàn trường** | Phòng Đào tạo, Quản trị | Cấu hình động 5 điều quy chế (`R01–R05`), hiển thị căn cứ pháp lý, đơn vị, thống kê số lượng vi phạm, dấu `ⓘ` và nút `⚡ Chạy đối soát lại toàn trường ngay` |
 | **M08** | **Ghi nhận Can thiệp của CVHT** | CVHT | Quản lý biên bản tư vấn học vụ (CRUD đầy đủ), cập nhật kết quả can thiệp và ghi nhật ký kiểm toán bất biến |
@@ -481,7 +482,7 @@ edualert/
 │        └─ persistence_and_ml.py        # Concrete Adapters kết nối Domain Ports với Rule Engine, Sheaf GNN & SQLite/PG
 ├─ node_gateway/                         # 🚀 ADAPTER ĐẦU VÀO: Node.js v24 BFF Gateway (:3000)
 │  └─ server.js                          # Circuit Breaker, Token-Bucket Rate Limiter, X-Correlation-Id, Reverse Proxy
-├─ frontend/                             # 💻 ADAPTER ĐẦU VÀO: React 18 SPA (Impeccable Visual Craftsmanship)
+├─ frontend/                             # ADAPTER ĐẦU VÀO: React 18 SPA (Giao diện Học thuật & Đồ thị Tương tác)
 │  ├─ index.html                         # SPA Mount Container & Bảng màu Ink/Paper chuẩn học thuật
 │  ├─ edualert_ux.css                    # Hệ thống giao diện mở rộng: Cổng đăng nhập M01, Ngăn kéo AI nổi & Markdown
 │  ├─ edualert_ux.jsx                    # LoginScreen 5 cấp + Đổi mật khẩu bắt buộc, AiAssistant, AiFloatingAssistant
@@ -489,7 +490,7 @@ edualert/
 │  ├─ react.min.js                       # Runtime React 18.3.1 (Tải sẵn offline 100%, không cần CDN)
 │  ├─ react-dom.min.js                   # Runtime ReactDOM 18.3.1 (Tải sẵn offline 100%)
 │  └─ babel.min.js                       # Trình biên dịch JSX Babel Standalone offline
-├─ backend/                              # ⚙️ PYTHON CORE & ML PIPELINE (:8000)
+├─ backend/                              # PYTHON CORE & ML PIPELINE (:8000)
 │  ├─ app.py                             # Máy chủ REST API (Auth 5 cấp, M01-M13, Simulator, Copilot, BFF Cloud Fallback)
 │  ├─ wsgi.py                            # WSGI Entrypoint chuẩn Production cho Gunicorn / Azure App Service
 │  ├─ ai_assistant.py                    # Trợ lý AI Lai: Xoay vòng 5 mô hình Google AI Free-Tier + Least-Privilege SQL
@@ -508,8 +509,8 @@ edualert/
 │  ├─ KICH_BAN_THUYET_TRINH.md           # Kịch bản thuyết trình 12 slides, 5 phút Live Demo & Bộ câu hỏi phản biện
 │  ├─ AZURE_DEPLOY_GUIDE.md              # Hướng dẫn triển khai đám mây Microsoft Azure App Service chi tiết
 │  ├─ EXPANSION_ROADMAP.md               # Lộ trình 6 hướng mở rộng chiến lược (Enterprise SSO, PWA, Federated GNN)
-│  ├─ PRODUCT.md                         # Định nghĩa sản phẩm, người dùng và mục tiêu học thuật (Chuẩn Impeccable)
-│  ├─ DESIGN.md                          # Hệ thống thiết kế Impeccable (Ink/Paper, Typography Serif, Không AI slop)
+│  ├─ PRODUCT.md                         # Định nghĩa sản phẩm, người dùng và mục tiêu học thuật
+│  ├─ DESIGN.md                          # Đặc tả hệ thống thiết kế giao diện (Ink/Paper, Typography Serif, Tabular numerals)
 │  └─ DATA_CARD.md                       # Đặc tả dữ liệu tổng hợp, giả định nhân quả & Nghị định 13/2023/NĐ-CP
 ├─ .github/workflows/                    # 🔄 CI/CD TỰ ĐỘNG HÓA TRÊN GITHUB ACTIONS
 │  ├─ main_edualert-ou-2026.yml          # Pipeline OIDC triển khai tự động lên Microsoft Azure App Service

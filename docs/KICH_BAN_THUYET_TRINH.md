@@ -68,7 +68,7 @@
 ### Slide 5: Kiến trúc Phần mềm Lục giác (Hexagonal Architecture)
 * **Nội dung trên Slide:**
   * Sơ đồ Ports & Adapters: Lõi nghiệp vụ thuần Python (`src/domain`, `src/application`) độc lập 100% với Framework bên ngoài (Zero-Framework Dependency).
-  * **Driving Adapters:** React 18 SPA (Impeccable Design), Node.js v24 BFF Gateway (Circuit Breaker, Rate Limiter).
+  * **Driving Adapters:** React 18 SPA (Giao diện Học thuật Chuyên nghiệp), Node.js v24 BFF Gateway (Circuit Breaker, Rate Limiter).
   * **Driven Adapters:** PostgreSQL 16 (3NF, RLS, Temporal JSONB), Sheaf Attention Inference Adapter, Circular08 Adapter, Audit Adapter.
   * **Khả năng kiểm thử:** 14/14 automated test suites passing.
 * **Lời thoại thuyết trình (50 giây):**
@@ -112,13 +112,13 @@
 
 ---
 
-### Slide 9: Giải thích Minh bạch (XAI) & Bản vị Thiết kế Impeccable
+### Slide 9: Giải thích Minh bạch (XAI) & Ngôn ngữ Thiết kế Học thuật
 * **Nội dung trên Slide:**
   * **Thanh phân rã yếu tố rủi ro SHAP đối xứng qua trục 0:** Yếu tố tăng rủi ro đẩy sang phải (đỏ), yếu tố bảo vệ đẩy sang trái (lục).
   * **Văn bản giải thích tất định (Deterministic Template NLG):** Cam kết 100% trung thực số liệu, không dùng AI sinh ngôn ngữ tự do (tránh hallucination).
-  * **Signature Component Impeccable:** Con dấu Registrar viền đôi xoay $-5.5^\circ$, bảng màu Giấy & Mực lưu trữ (Ink & Archival Paper).
+  * **Signature Component Học vụ:** Con dấu Registrar viền đôi xoay $-5.5^\circ$, bảng màu Giấy & Mực lưu trữ (Ink & Archival Paper).
 * **Lời thoại thuyết trình (45 giây):**
-  > "Để CVHT tin tưởng và sử dụng, hệ thống phải giải thích được nguyên nhân. Em sử dụng biểu đồ thanh SHAP đối xứng qua trục 0 và sinh câu giải thích từ template mẫu định sẵn dựa trên số liệu thực tế, loại trừ hoàn toàn nguy cơ AI bịa số liệu. Toàn bộ giao diện được thiết kế theo chuẩn Impeccable với con dấu Registrar viền đôi xoay nghiêng mang đậm tính pháp lý học vụ."
+  > "Để CVHT tin tưởng và sử dụng, hệ thống phải giải thích được nguyên nhân. Em sử dụng biểu đồ thanh SHAP đối xứng qua trục 0 và sinh câu giải thích từ template mẫu định sẵn dựa trên số liệu thực tế, loại trừ hoàn toàn nguy cơ AI bịa số liệu. Toàn bộ giao diện được thiết kế theo chuẩn học thuật với con dấu Registrar viền đôi xoay nghiêng mang đậm tính pháp lý học vụ."
 
 ---
 
@@ -181,7 +181,7 @@ flowchart LR
 
 ---
 
-### Phút 2 (1:00 - 2:00): Danh sách Toàn khóa Cohort View (M05) & Bộ lọc Chuẩn Impeccable
+### Phút 2 (1:00 - 2:00): Danh sách Toàn khóa Cohort View (M05) & Bộ lọc Đa tiêu chí
 * **Thao tác:**
   1. Chuyển sang Tab `M05 · Danh sách toàn khóa`.
   2. Chỉ vào banner màu xanh phía trên: *"Đang áp dụng Row-Level Security (RLS) theo Nghị định 13/2023/NĐ-CP: Chỉ hiển thị sinh viên thuộc lớp DH23CS01, DH23CS02"*.
@@ -190,7 +190,7 @@ flowchart LR
      * Lọc quy chế cụ thể: Chọn `R01_SEM_FAIL_RATIO` (Tỷ lệ rớt > 50%).
      * Tìm kiếm nhanh: Gõ `SV002`.
 * **Lời nói thuyết minh:**
-  > "Sang màn hình Cohort View, cơ chế Row-Level Security chặn cấp dòng dữ liệu, đảm bảo cô Lan chỉ thấy sinh viên lớp mình. Bộ lọc đa tiêu chí chuẩn Impeccable cho phép CVHT lọc nhanh theo lớp, mức nguy cơ, khoảng GPA và từng quy chế cụ thể từ R01 đến R05 để lập ngay danh sách ưu tiên gặp mặt đầu tuần."
+  > "Sang màn hình Cohort View, cơ chế Row-Level Security chặn cấp dòng dữ liệu, đảm bảo cô Lan chỉ thấy sinh viên lớp mình. Bộ lọc đa tiêu chí cho phép CVHT lọc nhanh theo lớp, mức nguy cơ, khoảng GPA và từng quy chế cụ thể từ R01 đến R05 để lập ngay danh sách ưu tiên gặp mặt đầu tuần."
 
 ---
 

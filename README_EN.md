@@ -1,30 +1,46 @@
 <div align="center">
 
-# 🎓 EduAlert — Multi-Level Early Academic Alert Platform
+# EduAlert — Multi-Level Early Academic Alert Platform
 ### *Hybrid Regulatory Compliance Engine (Circular 08/2021) & Cellular Sheaf Attention Graph Neural Networks on Hexagonal Architecture*
 
-[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-[![Node.js v24](https://img.shields.io/badge/Node.js-v24_BFF_Gateway-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
-[![React 18](https://img.shields.io/badge/React-18_SPA_(Impeccable)-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
-[![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL_16-3NF_%7C_RLS_%7C_Temporal-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/Flask-3.0_WSGI-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
+[![Node.js](https://img.shields.io/badge/Node.js-v24_BFF_Gateway-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-18.3_SPA-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![PyTorch Geometric](https://img.shields.io/badge/PyG-Sheaf_Attention_GNN-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch-geometric.readthedocs.io/)
-[![Azure Production](https://img.shields.io/badge/Microsoft_Azure-Live_Production-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white)](https://edualert-ou-2026-ffc7efguend9cbd4.eastasia-01.azurewebsites.net/)
-[![Architecture](https://img.shields.io/badge/Architecture-Hexagonal_(Ports_%26_Adapters)-C07F00?style=for-the-badge)](#2-hexagonal-architecture-ports--adapters)
-[![Tests](https://img.shields.io/badge/Automated_Tests-14%2F14_Passing-2E7D52?style=for-the-badge)](#9-testing--verification)
-
-> **🌐 Live Cloud Deployment (Microsoft Azure Production):** **[https://edualert-ou-2026-ffc7efguend9cbd4.eastasia-01.azurewebsites.net/](https://edualert-ou-2026-ffc7efguend9cbd4.eastasia-01.azurewebsites.net/)** *(Default first-time password for all accounts: `123` — Mandatory password change on first login)*
->
-> **🛠️ Techstack:** `Python 3.10+ (Hexagonal Core & WSGI)` · `Node.js v24 (Enterprise BFF Gateway)` · `React 18 SPA (Offline Runtime & Impeccable Design)` · `Google Gemini & Gemma AI (5-Model Free-Tier Cascade + Least-Privilege SQL Explorer)` · `PyTorch Geometric / Scikit-Learn (Sheaf Attention GNN)` · `PostgreSQL 16 / SQLite 3NF (5-Level RBAC/RLS, SHA-256 Auth & Audit Log)` · `Microsoft Azure App Service (Linux Gunicorn + GitHub Actions OIDC CI/CD + Docker)`
+[![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-ML_Pipeline-F7931E?style=for-the-badge&logo=scikitlearn&logoColor=white)](https://scikit-learn.org/)
+<br/>
+[![Google Gemini](https://img.shields.io/badge/Google_Gemini-2.5_Flash_%26_Gemma_3-4285F4?style=for-the-badge&logo=googlegemini&logoColor=white)](https://aistudio.google.com/)
+[![Google Cloud AI](https://img.shields.io/badge/Google_AI_Studio-Free_Tier_Cascade-EA4335?style=for-the-badge&logo=googlecloud&logoColor=white)](https://aistudio.google.com/apikey)
+[![Microsoft Azure](https://img.shields.io/badge/Microsoft_Azure-App_Service_Linux-0078D4?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0xMy4wNSA0LjI0TDYuNTYgMTguMDUgMiAxOGw1LjA5LTguNzYgNS45Ni01ek0xMy43NSA1LjMzTDIyIDE5Ljc2SDguNzRsNC45OC0zLjAyLTIuNTgtMy44MiAyLjYxLTcuNTl6Ii8+PC9zdmc+)](https://edualert-ou-2026-ffc7efguend9cbd4.eastasia-01.azurewebsites.net/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL_16-3NF_%7C_RLS-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![SQLite](https://img.shields.io/badge/SQLite_3-Least_Privilege_SQL-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
+[![Docker](https://img.shields.io/badge/Docker-Production_Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](Dockerfile)
+[![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-OIDC_CI%2FCD_14%2F14_Pass-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/danielhuynh-04/edualert-hexagonal-gnn/actions)
 
 **Author:** **Huỳnh Lê Thanh Hải** · B.Sc. Computer Science (Advanced Program — Database Specialization)  
 **Institution:** Ho Chi Minh City Open University (HCMC OU)  
-**GitHub:** [github.com/danielhuynh-04](https://github.com/danielhuynh-04) · **Kaggle:** [kaggle.com/lthanhhihunh](https://www.kaggle.com/lthanhhihunh) ·
+**GitHub:** [github.com/danielhuynh-04](https://github.com/danielhuynh-04) · **Kaggle:** [kaggle.com/lthanhhihunh](https://www.kaggle.com/lthanhhihunh) ·  
+**Live Cloud Deployment (Microsoft Azure):** **[https://edualert-ou-2026-ffc7efguend9cbd4.eastasia-01.azurewebsites.net/](https://edualert-ou-2026-ffc7efguend9cbd4.eastasia-01.azurewebsites.net/)** *(Default first-time password: `123` — Mandatory password change on first login)*
 
 ---
 
-[ [🇻🇳 Tiếng Việt](README.md) | **🇬🇧 English** | [🎤 **Presentation Script**](docs/KICH_BAN_THUYET_TRINH.md) | [☁️ **Azure Deployment**](docs/AZURE_DEPLOY_GUIDE.md) | [🚀 **Expansion Roadmap**](docs/EXPANSION_ROADMAP.md) | [📐 **Impeccable Design**](docs/DESIGN.md) ]
+[ [Tiếng Việt](README.md) | **English** | [**Live Production (Azure)**](https://edualert-ou-2026-ffc7efguend9cbd4.eastasia-01.azurewebsites.net/) | [**Presentation Script**](docs/KICH_BAN_THUYET_TRINH.md) | [**Azure Deployment**](docs/AZURE_DEPLOY_GUIDE.md) | [**Expansion Roadmap**](docs/EXPANSION_ROADMAP.md) | [**Design System**](docs/DESIGN.md) ]
 
 </div>
+
+---
+
+## Production Technology Stack
+
+| System Layer | Visual Technology Badges | Technical Role in EduAlert |
+| :--- | :--- | :--- |
+| **1. Domain Core & Backend API** | ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white) ![Flask](https://img.shields.io/badge/Flask-3.0-000000?style=for-the-badge&logo=flask&logoColor=white) ![Gunicorn](https://img.shields.io/badge/Gunicorn-WSGI-499848?style=for-the-badge&logo=gunicorn&logoColor=white) | Enforces zero-dependency **Hexagonal Architecture (Ports & Adapters)** (`src/domain`, `src/ports`, `src/application`), 20+ REST endpoints (`M01`–`M13`), dynamic Circular 08/2021 rule engine (`R01–R05`), and interactive What-If simulation. |
+| **2. Graph Machine Learning & XAI** | ![PyTorch](https://img.shields.io/badge/PyTorch_Geometric-Sheaf_GNN-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white) ![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-1.5-F7931E?style=for-the-badge&logo=scikitlearn&logoColor=white) ![NumPy](https://img.shields.io/badge/NumPy-Pandas-013243?style=for-the-badge&logo=numpy&logoColor=white) | Benchmarks 6 models (`Logistic Regression`, `Random Forest`, `GCN`, `GAT`, `ST-GAT`, `Hybrid Sheaf-GNN`); resolves peer **heterophily**, computes SHAP feature attributions, and runs 5-seed label permutation tests. |
+| **3. Google AI Cascade & SQL Copilot** | ![Google Gemini](https://img.shields.io/badge/Google_Gemini-2.5_Flash-4285F4?style=for-the-badge&logo=googlegemini&logoColor=white) ![Google AI](https://img.shields.io/badge/Google_AI_Studio-Gemma_3_27B-EA4335?style=for-the-badge&logo=google&logoColor=white) | Auto-rotates across **5 free Google AI Studio models** (`gemini-2.5-flash-lite`, `gemini-2.5-flash`, `gemini-2.0-flash-lite`, `gemini-2.0-flash`, `gemma-3-27b-it`) paired with a **Least-Privilege Read-Only SQL Explorer** for student forensic audits and 4-week recovery planning. |
+| **4. Microsoft Azure Cloud & CI/CD** | ![Microsoft Azure](https://img.shields.io/badge/Microsoft_Azure-App_Service-0078D4?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0xMy4wNSA0LjI0TDYuNTYgMTguMDUgMiAxOGw1LjA5LTguNzYgNS45Ni01ek0xMy43NSA1LjMzTDIyIDE5Ljc2SDguNzRsNC45OC0zLjAyLTIuNTgtMy44MiAyLjYxLTcuNTl6Ii8+PC9zdmc+) ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-OIDC_Deploy-2088FF?style=for-the-badge&logo=githubactions&logoColor=white) ![Docker](https://img.shields.io/badge/Docker-Container-2496ED?style=for-the-badge&logo=docker&logoColor=white) | Hosted live on **Azure App Service Linux (East Asia)** via passwordless **Microsoft Entra ID Federated OIDC**; runs 14/14 automated unit & integration tests on every push. |
+| **5. Database, 5-Level RLS & Security** | ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16_RLS-4169E1?style=for-the-badge&logo=postgresql&logoColor=white) ![SQLite](https://img.shields.io/badge/SQLite_3-18_Tables_3NF-003B57?style=for-the-badge&logo=sqlite&logoColor=white) | 18-table 3NF schema, 5-tier **Row-Level Security (RLS)** (`LV1`–`LV5`), mandatory password authentication (default `123` with forced change on first login), `sqlite3.set_authorizer` column masking per **Decree 13/2023/NĐ-CP**, and immutable `audit_log`. |
+| **6. BFF Gateway & Offline-Ready SPA** | ![Node.js](https://img.shields.io/badge/Node.js-v24_Gateway-339933?style=for-the-badge&logo=nodedotjs&logoColor=white) ![React](https://img.shields.io/badge/React-18.3_SPA-61DAFB?style=for-the-badge&logo=react&logoColor=black) ![HTML5](https://img.shields.io/badge/HTML5-Canvas_%26_SVG-E34F26?style=for-the-badge&logo=html5&logoColor=white) | BFF Gateway with **Circuit Breaker**, **Token-Bucket Rate Limiter** (`120 req/min`), and `X-Correlation-Id` tracing; 100% self-hosted React 18 SPA with interactive force-directed Sheaf graph canvas (`M06`). |
 
 ---
 

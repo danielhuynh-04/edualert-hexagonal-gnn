@@ -1,12 +1,12 @@
 /**
  * ============================================================================
  * EduAlert — React 18 Hexagonal SPA (Single Page Application)
- * Impeccable Visual Craftsmanship & Academic Authority Design System
+ * Academic Authority & Editorial Archival Design System
  * 
  * Compliant with:
  *  - Decision 08/2021/TT-BGDĐT (Article 11 — Mandatory Override)
  *  - Decree 13/2023/NĐ-CP (Personal Data Protection & Privacy)
- *  - pbakaus/impeccable Design Philosophy (Zero AI Slop, Charter Serif,
+ *  - Editorial Academic Design System (Charter Serif,
  *    Tabular Figures, Ink & Archival Paper, Symmetric Diverging SHAP Bars,
  *    Registrar Seal with Double Stamped Border, Advanced Filters, Full CRUD)
  * 
@@ -1135,7 +1135,7 @@ function CohortTab({
         </div>
       )}
 
-      {/* Advanced Filter Toolbar (Chuẩn Impeccable) */}
+      {/* Advanced Multi-Criteria Filter Toolbar */}
       <div className="advanced-filter-panel">
         <div className="filter-grid">
           <div>
