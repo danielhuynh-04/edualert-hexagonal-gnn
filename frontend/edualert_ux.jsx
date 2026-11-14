@@ -77,10 +77,12 @@ const FALLBACK_ACCOUNTS = [
 
 function LoginScreen({ onLoginSuccess }) {
   const [accounts, setAccounts] = React.useState(FALLBACK_ACCOUNTS);
-  const [username, setUsername] = React.useState("");
+  const [username, setUsername] = React.useState("cvht_lan");
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState("");
+  const [infoMsg, setInfoMsg] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  const passInputRef = React.useRef(null);
 
   React.useEffect(() => {
     fetch("/api/auth/roles")
@@ -89,14 +91,15 @@ function LoginScreen({ onLoginSuccess }) {
       .catch(() => {});
   }, []);
 
-  const login = async (uname) => {
+  const login = async (uname, pw) => {
     setBusy(true);
     setError("");
+    setInfoMsg("");
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: uname }),
+        body: JSON.stringify({ username: uname, password: pw }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Đăng nhập thất bại.");
@@ -108,10 +111,42 @@ function LoginScreen({ onLoginSuccess }) {
     }
   };
 
+  const handleSelectAccountCard = (uname) => {
+    setUsername(uname);
+    setError("");
+    setInfoMsg(`Đã chọn tài khoản '${uname}'. Vui lòng nhập mật khẩu (mặc định lần đầu là: 123) rồi bấm Đăng nhập.`);
+    if (passInputRef.current) passInputRef.current.focus();
+  };
+
+  const handleResetDefaultPassword = async () => {
+    if (!username.trim()) {
+      setError("Vui lòng chọn hoặc nhập tên tài khoản cần khôi phục mật khẩu mặc định '123'.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: username.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Không thể khôi phục mật khẩu.");
+      setPassword("123");
+      setInfoMsg(`✓ ${data.message} Bạn có thể bấm Đăng nhập ngay.`);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const submit = (e) => {
     e.preventDefault();
     if (!username.trim()) { setError("Vui lòng nhập tên đăng nhập hoặc MSSV."); return; }
-    login(username.trim());
+    if (!password.trim()) { setError("Vui lòng nhập mật khẩu (mật khẩu mặc định lần đầu là: 123)."); return; }
+    login(username.trim(), password.trim());
   };
 
   return (
@@ -126,20 +161,75 @@ function LoginScreen({ onLoginSuccess }) {
           <ul className="lg-points">
             <li><span className="ico">⚖</span><span><b>Tuân thủ Điều 11 TT08/2021</b>5 quy tắc R01–R05 cấu hình động, đối soát tức thời.</span></li>
             <li><span className="ico">◈</span><span><b>Sheaf Attention GNN</b>Dự báo ĐTB kỳ tới, phát hiện sinh viên tụt điểm trước khi chạm ngưỡng.</span></li>
-            <li><span className="ico">✦</span><span><b>Trợ lý AI Google Gemini</b>Trả lời dựa trên dữ liệu thật (grounded), trích dẫn quy chế, SQL chỉ đọc.</span></li>
-            <li><span className="ico">🔒</span><span><b>Phân quyền 5 cấp + RLS</b>Bảo vệ dữ liệu cá nhân theo Nghị định 13/2023/NĐ-CP.</span></li>
+            <li><span className="ico">✦</span><span><b>Trợ lý AI Least-Privilege SQL</b>Dò xét CSDL chỉ đọc (Read-Only), hỗ trợ học vụ và tự động lập kế hoạch can thiệp.</span></li>
+            <li><span className="ico">🔒</span><span><b>Bảo mật Mật khẩu &amp; RLS 5 Cấp</b>Mật khẩu mặc định lần đầu <code>123</code>, bắt buộc tự đổi mật khẩu mới khi đăng nhập.</span></li>
           </ul>
         </div>
         <div className="lg-foot">
-          Môi trường demo: mật khẩu không được kiểm tra. Mọi lượt đăng nhập được ghi vào <code>audit_log</code>.
+          Mật khẩu mặc định lần đầu: <code>123</code> · Mọi lượt đăng nhập &amp; đổi mật khẩu được ghi vào <code>audit_log</code>.
         </div>
       </aside>
 
       <main className="lg-main">
-        <h2>Đăng nhập</h2>
-        <p className="lg-sub">Chọn nhanh một tài khoản demo theo cấp thẩm quyền, hoặc nhập tài khoản bên dưới.</p>
+        <h2>Cổng Đăng Nhập Bắt Buộc (M01)</h2>
+        <p className="lg-sub">
+          Chọn một tài khoản theo 5 cấp phân quyền bên dưới hoặc tự nhập MSSV (`SV001`–`SV180`).
+          <br />
+          <strong style={{ color: "#1E40AF" }}>🔑 Mật khẩu mặc định lần đầu của tất cả tài khoản là: <code>123</code></strong> (Hệ thống sẽ yêu cầu bạn tự đổi sang mật khẩu mới ngay sau khi đăng nhập lần đầu).
+        </p>
 
         {error && <div className="lg-err" role="alert">⚠ {error}</div>}
+        {infoMsg && (
+          <div style={{ padding: "10px 14px", borderRadius: 8, background: "#EFF6FF", border: "1px solid #BFDBFE", color: "#1E3A8A", fontSize: ".84rem", marginBottom: 12, fontWeight: 600 }}>
+            {infoMsg}
+          </div>
+        )}
+
+        <form className="lg-form" onSubmit={submit} style={{ marginBottom: 18, padding: 16, background: "#F8FAFC", borderRadius: 12, border: "1px solid #E2E8F0" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 12 }}>
+            <div>
+              <label htmlFor="lg-user">Tên đăng nhập / Mã số sinh viên</label>
+              <input id="lg-user" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="VD: cvht_lan, admin, SV002..." autoComplete="username" />
+            </div>
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <label htmlFor="lg-pass">Mật khẩu bắt buộc</label>
+                <button
+                  type="button"
+                  onClick={() => setPassword("123")}
+                  style={{ border: "none", background: "none", color: "#2563EB", fontSize: ".75rem", fontWeight: 700, cursor: "pointer", padding: 0 }}
+                >
+                  Điền nhanh: 123
+                </button>
+              </div>
+              <input
+                id="lg-pass"
+                ref={passInputRef}
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Nhập mật khẩu (mặc định: 123)"
+                autoComplete="current-password"
+              />
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 12, flexWrap: "wrap" }}>
+            <button type="submit" className="primary" style={{ flex: "1 1 200px", padding: "11px", fontWeight: 700 }} disabled={busy}>
+              {busy ? "Đang xác thực…" : "🔐 Đăng nhập vào Hệ thống"}
+            </button>
+            <button
+              type="button"
+              onClick={handleResetDefaultPassword}
+              disabled={busy}
+              style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid #CBD5E1", background: "#fff", color: "#475569", fontSize: ".78rem", fontWeight: 600, cursor: "pointer" }}
+              title="Nếu bạn đã đổi mật khẩu và quên, bấm để đặt lại về 123"
+            >
+              ↺ Khôi phục mật khẩu gốc (123)
+            </button>
+          </div>
+        </form>
+
+        <div className="lg-divider">Chọn nhanh tài khoản theo 5 cấp độ phân quyền (RBAC/RLS)</div>
 
         <div className="lg-levels">
           {accounts.map((a) => (
@@ -147,10 +237,13 @@ function LoginScreen({ onLoginSuccess }) {
               key={a.username}
               type="button"
               className="lg-card"
-              style={{ "--lvc": LEVEL_COLORS[a.level] }}
-              onClick={() => login(a.username)}
+              style={{
+                "--lvc": LEVEL_COLORS[a.level],
+                outline: username.toLowerCase() === a.username.toLowerCase() ? "2px solid #2563EB" : "none",
+              }}
+              onClick={() => handleSelectAccountCard(a.username)}
               disabled={busy}
-              title={`Đăng nhập nhanh: ${a.username}`}
+              title={`Chọn tài khoản: ${a.username}`}
             >
               <div className="meta">
                 <LevelBadge level={a.level} label={a.level_label} />
@@ -159,26 +252,140 @@ function LoginScreen({ onLoginSuccess }) {
               <span className="who">{a.display_name}</span>
               <span className="desc">{a.description}</span>
               <div className="meta">
-                <span>{a.assigned_classes && a.assigned_classes.length ? `Lớp: ${a.assigned_classes.join(", ")}` : "Phạm vi rộng"}</span>
-                <span className="go">Vào →</span>
+                <span>{a.assigned_classes && a.assigned_classes.length ? `Lớp: ${a.assigned_classes.join(", ")}` : "Phạm vi toàn trường/khoa"}</span>
+                <span className="go">Chọn tài khoản →</span>
               </div>
             </button>
           ))}
         </div>
-
-        <div className="lg-divider">hoặc đăng nhập bằng tài khoản</div>
-
-        <form className="lg-form" onSubmit={submit}>
-          <label htmlFor="lg-user">Tên đăng nhập / Mã số sinh viên</label>
-          <input id="lg-user" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="VD: cvht_lan hoặc SV002" autoComplete="username" />
-          <div className="hint">Cán bộ dùng tên đăng nhập; sinh viên dùng MSSV (SV001 … SV180).</div>
-          <label htmlFor="lg-pass">Mật khẩu</label>
-          <input id="lg-pass" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" autoComplete="current-password" />
-          <button type="submit" className="primary" style={{ width: "100%", padding: "11px", fontWeight: 700 }} disabled={busy}>
-            {busy ? "Đang xác thực…" : "Đăng nhập"}
-          </button>
-        </form>
       </main>
+    </div>
+  );
+}
+
+function ChangePasswordModal({ username, displayName, forced, onClose, onSuccess }) {
+  const [oldPassword, setOldPassword] = React.useState(forced ? "123" : "");
+  const [newPassword, setNewPassword] = React.useState("");
+  const [confirmPassword, setConfirmPassword] = React.useState("");
+  const [error, setError] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (!oldPassword.trim() || !newPassword.trim()) {
+      setError("Vui lòng nhập đầy đủ mật khẩu hiện tại và mật khẩu mới.");
+      return;
+    }
+    if (newPassword.trim() === "123") {
+      setError("Mật khẩu mới KHÔNG được trùng với mật khẩu mặc định '123'!");
+      return;
+    }
+    if (newPassword.trim().length < 3) {
+      setError("Mật khẩu mới phải có ít nhất 3 ký tự.");
+      return;
+    }
+    if (newPassword.trim() !== confirmPassword.trim()) {
+      setError("Xác nhận mật khẩu mới không khớp!");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username,
+          old_password: oldPassword.trim(),
+          new_password: newPassword.trim(),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Đổi mật khẩu thất bại.");
+      onSuccess(data.message || "Đã đổi mật khẩu thành công!");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.72)", backdropFilter: "blur(4px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div style={{ background: "#fff", borderRadius: 16, maxWidth: 460, width: "100%", padding: 24, boxShadow: "0 20px 50px rgba(0,0,0,0.3)", border: "1px solid #E2E8F0" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <h3 style={{ margin: 0, fontSize: "1.15rem", color: "#0F172A" }}>
+            {forced ? "🔐 Bắt Buộc Đổi Mật Khẩu Lần Đầu" : "🔑 Đổi Mật Khẩu Tài Khoản"}
+          </h3>
+          {!forced && (
+            <button type="button" onClick={onClose} style={{ border: "none", background: "none", fontSize: "1.2rem", cursor: "pointer", color: "#64748B" }}>✕</button>
+          )}
+        </div>
+        <p style={{ fontSize: ".85rem", color: "#475569", lineHeight: 1.5, marginTop: 0 }}>
+          Tài khoản: <strong>{displayName || username}</strong> (<code>{username}</code>)<br />
+          {forced
+            ? "Bạn vừa đăng nhập bằng mật khẩu mặc định '123'. Theo chính sách bảo mật, bạn bắt buộc phải tự đặt mật khẩu mới (khác '123') trước khi sử dụng hệ thống."
+            : "Nhập mật khẩu hiện tại và mật khẩu mới bạn muốn thay đổi."}
+        </p>
+
+        {error && (
+          <div style={{ padding: "9px 12px", borderRadius: 8, background: "#FEF2F2", border: "1px solid #FECACA", color: "#B91C1C", fontSize: ".82rem", marginBottom: 12, fontWeight: 600 }}>
+            ⚠ {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div>
+            <label style={{ display: "block", fontSize: ".78rem", fontWeight: 700, color: "#334155", marginBottom: 4 }}>Mật khẩu hiện tại</label>
+            <input
+              type="password"
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+              placeholder="Mật khẩu hiện tại (mặc định: 123)"
+              style={{ width: "100%", padding: "9px 11px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: ".88rem", boxSizing: "border-box" }}
+            />
+          </div>
+          <div>
+            <label style={{ display: "block", fontSize: ".78rem", fontWeight: 700, color: "#334155", marginBottom: 4 }}>Mật khẩu mới (khác 123, tối thiểu 3 ký tự)</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Nhập mật khẩu mới của riêng bạn"
+              autoFocus
+              style={{ width: "100%", padding: "9px 11px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: ".88rem", boxSizing: "border-box" }}
+            />
+          </div>
+          <div>
+            <label style={{ display: "block", fontSize: ".78rem", fontWeight: 700, color: "#334155", marginBottom: 4 }}>Xác nhận mật khẩu mới</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Nhập lại mật khẩu mới"
+              style={{ width: "100%", padding: "9px 11px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: ".88rem", boxSizing: "border-box" }}
+            />
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <button
+              type="submit"
+              disabled={busy}
+              style={{ flex: 1, padding: "10px 14px", borderRadius: 8, border: "none", background: "#2563EB", color: "#fff", fontWeight: 700, fontSize: ".88rem", cursor: "pointer" }}
+            >
+              {busy ? "Đang lưu…" : "✓ Lưu Mật Khẩu Mới & Tiếp Tục"}
+            </button>
+            {!forced && (
+              <button
+                type="button"
+                onClick={onClose}
+                style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid #CBD5E1", background: "#fff", color: "#475569", fontWeight: 600, fontSize: ".85rem", cursor: "pointer" }}
+              >
+                Hủy
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
@@ -190,18 +397,20 @@ function suggestionsFor(user) {
   if (user && user.level === 1) {
     return [
       "Tình hình học tập của tôi hiện nay thế nào?",
-      "Tôi cần làm gì để không bị cảnh báo học tập kỳ tới?",
+      "Giúp tôi lập kế hoạch học tập học kỳ tới để thoát cảnh báo",
       "Điều kiện cảnh báo học tập theo Thông tư 08 là gì?",
-      "Bị cảnh báo 2 lần liên tiếp thì sao?",
+      "Bị cảnh báo 2 lần liên tiếp thì xử lý thế nào?",
     ];
   }
   const cls = user && user.assigned_classes && user.assigned_classes[0];
   return [
-    "Top sinh viên cần ưu tiên can thiệp kỳ này?",
-    cls ? `Danh sách sinh viên nợ trên 10 tín chỉ lớp ${cls}` : "Danh sách sinh viên nợ trên 10 tín chỉ lớp DH23CS01",
-    "Vì sao SV002 bị cảnh báo sớm dù chưa chạm quy chế?",
-    "Lập kế hoạch khắc phục cho sinh viên SV003",
-    "Trường hợp nào sinh viên bị buộc thôi học?",
+    "Dò xét lỗ hổng can thiệp & lập kế hoạch 4 tuần cho Khoa/CVHT",
+    "Top 5 sinh viên thành tích tốt nhất toàn khóa",
+    "Top 5 sinh viên tệ / nguy cơ cao nhất cần ưu tiên",
+    "So sánh chất lượng học vụ giữa các lớp",
+    cls ? `Danh sách sinh viên nợ trên 10 tín chỉ lớp ${cls}` : "Danh sách sinh viên được AI phát hiện sớm (chưa vi phạm TT08)",
+    "Kiểm tra quyền truy cập Database Least-Privilege của AI",
+    "Phân tích hồ sơ SV002 và lập kế hoạch khắc phục",
   ];
 }
 
@@ -218,15 +427,22 @@ function AiAssistant({ activeUser, compact, pendingQuestion, onPendingConsumed }
   const [status, setStatus] = useAiStatus();
   const isStudent = activeUser && activeUser.level === 1;
   const greeting = isStudent
-    ? `Chào ${activeUser.display_name || "bạn"}! Mình là trợ lý học vụ EduAlert. Bạn có thể hỏi về tình hình học tập của mình hoặc quy chế Thông tư 08/2021.`
-    : `Xin chào ${activeUser ? activeUser.display_name : "Thầy/Cô"}! Tôi có thể phân tích hồ sơ sinh viên, lọc danh sách theo lớp/nợ tín chỉ và giải thích Điều 11 Thông tư 08/2021.`;
+    ? `Chào ${activeUser.display_name || "bạn"}! Mình là trợ lý học vụ EduAlert (đã kết nối CSDL dưới quyền tối thiểu Read-Only RLS). Bạn có thể hỏi về kết quả học tập của mình hoặc quy chế Thông tư 08/2021.`
+    : `Xin chào ${activeUser ? activeUser.display_name : "Thầy/Cô"}! Trợ lý AI đã được cấp quyền ĐỌC TỐI THIỂU (Least-Privilege Read-Only SQL) trên 18 bảng CSDL. Thầy/Cô có thể tra cứu Top SV tốt nhất, Top SV nguy cơ cao, so sánh các lớp, điểm rèn luyện hoặc phân tích từng MSSV.`;
 
   const [messages, setMessages] = React.useState([{ sender: "bot", text: greeting, engine: "system" }]);
   const [input, setInput] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [openSql, setOpenSql] = React.useState({});
   const [showKeyForm, setShowKeyForm] = React.useState(false);
-  const [apiKeyInput, setApiKeyInput] = React.useState(() => localStorage.getItem("edualert_gemini_key") || "");
+  const [apiKeyInput, setApiKeyInput] = React.useState(() => {
+    const saved = (localStorage.getItem("edualert_gemini_key") || "").trim();
+    if (saved && (!saved.startsWith("AIza") || saved.length < 30)) {
+      localStorage.removeItem("edualert_gemini_key");
+      return "";
+    }
+    return saved;
+  });
   const [modelSelect, setModelSelect] = React.useState(() => localStorage.getItem("edualert_gemini_model") || "gemini-2.5-flash-lite");
   const [configSavedMsg, setConfigSavedMsg] = React.useState("");
   const listRef = React.useRef(null);
@@ -237,18 +453,23 @@ function AiAssistant({ activeUser, compact, pendingQuestion, onPendingConsumed }
 
   const handleSaveConfig = async (e) => {
     e.preventDefault();
-    localStorage.setItem("edualert_gemini_key", apiKeyInput.trim());
+    const trimmed = apiKeyInput.trim();
+    if (trimmed && (!trimmed.startsWith("AIza") || trimmed.length < 30)) {
+      setConfigSavedMsg("⚠ Khóa Google AI Studio phải bắt đầu bằng 'AIzaSy...' (~39 ký tự).");
+      return;
+    }
+    localStorage.setItem("edualert_gemini_key", trimmed);
     localStorage.setItem("edualert_gemini_model", modelSelect);
     try {
       const res = await fetch("/api/ai/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ api_key: apiKeyInput.trim(), model: modelSelect }),
+        body: JSON.stringify({ api_key: trimmed, model: modelSelect }),
       });
       if (res.ok) {
         const st = await res.json();
         setStatus(st);
-        setConfigSavedMsg(st.gemini_enabled ? "✓ Đã kích hoạt Google Gemini API!" : "Đã chuyển về chế độ RAG Offline.");
+        setConfigSavedMsg(st.gemini_enabled ? "✓ Đã kích hoạt Google Gemini + SQL Least-Privilege!" : "✓ Đang dùng Bộ máy SQL Least-Privilege + RAG.");
         setTimeout(() => setConfigSavedMsg(""), 3500);
       }
     } catch (_) {}
@@ -306,10 +527,10 @@ function AiAssistant({ activeUser, compact, pendingQuestion, onPendingConsumed }
 
   const engineTag = (m) => {
     if (!m.engine || m.engine === "system") return null;
-    if (m.engine.startsWith("gemini")) return <span className="ai-tag gem">✦ {m.engine.replace("gemini:", "Gemini ")}</span>;
+    if (m.engine.startsWith("gemini")) return <span className="ai-tag gem">✦ {m.engine.replace("gemini:", "Gemini ")} + SQL</span>;
     if (m.engine === "rls-guard") return <span className="ai-tag rls">🔒 Chặn bởi RLS</span>;
     if (m.engine === "error") return <span className="ai-tag rls">Lỗi</span>;
-    return <span className="ai-tag">RAG offline</span>;
+    return <span className="ai-tag gem">⚡ SQL Least-Privilege + RAG</span>;
   };
 
   const panel = (
@@ -322,10 +543,10 @@ function AiAssistant({ activeUser, compact, pendingQuestion, onPendingConsumed }
             className="small"
             onClick={() => setShowKeyForm((v) => !v)}
             style={{ cursor: "pointer", fontWeight: 700, border: "1px solid #C7D2FE", borderRadius: 999, padding: "4px 10px", background: gemOn ? "#DCFCE7" : "#EEF2FF", color: gemOn ? "#15803D" : "#4338CA", fontSize: ".74rem" }}
-            title="Bấm để dán Google AI Studio API Key miễn phí"
+            title="Bấm để cấu hình thêm Google Gemini API Key miễn phí"
           >
-            <span className="dot" style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: gemOn ? "#16A34A" : "#6366F1", marginRight: 5 }} />
-            {status ? (gemOn ? `✦ ${status.model} (Free)` : "⚙ Bật Google AI Free (Đang ở RAG Offline)") : "Đang kiểm tra…"}
+            <span className="dot" style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "#16A34A", marginRight: 5 }} />
+            {status ? (gemOn ? `✦ ${status.model} + SQL Least-Privilege` : "⚡ SQL Least-Privilege (Đang bật) · ⚙ Gắn thêm Gemini Key") : "Đang kiểm tra…"}
           </button>
           <button type="button" className="small" onClick={() => setMessages([{ sender: "bot", text: greeting, engine: "system" }])} title="Xóa hội thoại">↺</button>
         </div>

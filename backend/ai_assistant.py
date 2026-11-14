@@ -1,19 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-EduAlert — Hybrid AI Assistant (Grounded Rule-based RAG + Google Gemini & Gemma Free-Tier Cascade)
+EduAlert — Hybrid AI Assistant (Least-Privilege Read-Only SQL Explorer + Google Gemini Free-Tier Cascade)
 
-Kiến trúc "Grounded Generation + Multi-Model Free-Tier Cascade":
-  1. Tầng xác định (deterministic): backend.copilot trích thực thể (MSSV, lớp), chạy SQL chỉ đọc,
-     truy xuất Điều 11 Thông tư 08/2021 -> tạo "ngữ cảnh sự thật" (facts) có trích dẫn.
-  2. Tầng sinh ngôn ngữ (generative, 100% Free Tier Google AI Studio):
-     Nếu có GEMINI_API_KEY, tự động xoay vòng (Cascade) qua chuỗi 5 mô hình miễn phí của Google AI Studio:
-       - gemini-2.5-flash-lite (1,000+ req/ngày Free, tốc độ siêu nhanh < 1s)
-       - gemini-2.5-flash      (Mô hình suy luận 2.5 chủ lực)
-       - gemini-2.0-flash-lite (1,500 req/ngày Free)
-       - gemini-2.0-flash      (1,500 req/ngày Free)
-       - gemma-3-27b-it        (14,400 req/ngày Free trên cùng API Key Google AI Studio!)
-     Tổng hạn mức miễn phí lên tới >18,000 câu hỏi/ngày chỉ với 1 API Key miễn phí duy nhất.
-  3. Fallback: không có khóa / mất mạng -> trả lời bằng tầng xác định (hệ thống luôn chạy 100% không gián đoạn).
+Kiến trúc 3 tầng bảo mật & chính xác:
+  1. Tầng CSDL Quyền Tối Thiểu (Least-Privilege SQLite Authorizer):
+     backend.copilot mở kết nối Read-Only (`PRAGMA query_only = ON` + `sqlite3.set_authorizer`),
+     chặn tuyệt đối INSERT/UPDATE/DELETE/DROP và ẩn các cột nhạy cảm (`users.password_hash`, `anon_hash`).
+  2. Tầng Biên dịch Ngữ nghĩa NL-to-SQL (Semantic SQL Compiler):
+     Tự động phân tích câu hỏi tiếng Việt (Top SV tốt nhất, Top SV nguy cơ cao, So sánh các lớp,
+     Điểm rèn luyện, Cảnh báo sớm Sheaf GNN, Đối sánh mô hình AI, Lọc nợ tín chỉ/GPA...) và chạy SQL thật.
+  3. Tầng Sinh Ngôn Ngữ Google AI Studio (Free-Tier Multi-Model Cascade):
+     Nếu có khóa `AIzaSy...` hợp lệ, xoay vòng qua 5 mô hình miễn phí (`gemini-2.5-flash-lite`,
+     `gemini-2.5-flash`, `gemini-2.0-flash-lite`, `gemini-2.0-flash`, `gemma-3-27b-it`).
 
 Author: Huynh Le Thanh Hai — HCMC Open University
 """
@@ -26,12 +24,11 @@ import urllib.error
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from backend.copilot import KNOWLEDGE_BASE, answer_copilot_query
+from backend.copilot import KNOWLEDGE_BASE, DB_SCHEMA_SUMMARY, answer_copilot_query, execute_safe_readonly_sql
 
 GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 DEFAULT_MODEL = "gemini-2.5-flash-lite"
 
-# Chuỗi xoay vòng tự động các mô hình Free Tier cao nhất trên Google AI Studio (cùng dùng 1 API Key AIza...)
 FREE_TIER_CASCADE = [
     "gemini-2.5-flash-lite",
     "gemini-2.5-flash",
@@ -40,13 +37,29 @@ FREE_TIER_CASCADE = [
     "gemma-3-27b-it",
 ]
 
-_last_error: Dict[str, Any] = {"message": None, "at": None}
-
-
 PERSISTENT_CONFIG_PATHS = [
     Path("/home/site/edualert_ai_config.json"),
     Path(__file__).resolve().parent.parent / ".edualert_ai_config.json",
 ]
+
+_last_error: Dict[str, Any] = {"message": None, "at": None}
+
+
+def _is_valid_key_format(val: Optional[str]) -> bool:
+    if not val:
+        return False
+    s = val.strip()
+    return s.startswith("AIza") and len(s) >= 30 and " " not in s
+
+
+def _clear_invalid_saved_key() -> None:
+    os.environ.pop("GEMINI_API_KEY", None)
+    for cfg_path in PERSISTENT_CONFIG_PATHS:
+        try:
+            if cfg_path.exists():
+                cfg_path.unlink()
+        except Exception:
+            pass
 
 
 def _load_dotenv() -> None:
@@ -65,8 +78,9 @@ def _load_dotenv() -> None:
         try:
             if cfg_path.exists():
                 data = json.loads(cfg_path.read_text(encoding="utf-8"))
-                if data.get("api_key") and not os.environ.get("GEMINI_API_KEY"):
-                    os.environ["GEMINI_API_KEY"] = data["api_key"]
+                saved_key = data.get("api_key", "")
+                if _is_valid_key_format(saved_key) and not _is_valid_key_format(os.environ.get("GEMINI_API_KEY")):
+                    os.environ["GEMINI_API_KEY"] = saved_key.strip()
                 if data.get("model") and not os.environ.get("GEMINI_MODEL"):
                     os.environ["GEMINI_MODEL"] = data["model"]
                 break
@@ -78,11 +92,12 @@ _load_dotenv()
 
 
 def _api_key(override_key: Optional[str] = None) -> Optional[str]:
-    if override_key and override_key.strip():
-        return override_key.strip()
-    if not os.environ.get("GEMINI_API_KEY"):
-        _load_dotenv()
-    return os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    if _is_valid_key_format(override_key):
+        return override_key.strip()  # type: ignore
+    env_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    if _is_valid_key_format(env_key):
+        return env_key.strip()  # type: ignore
+    return None
 
 
 def _model(override_model: Optional[str] = None) -> str:
@@ -93,36 +108,45 @@ def _model(override_model: Optional[str] = None) -> str:
 
 def set_gemini_config(api_key: Optional[str] = None, model: Optional[str] = None) -> Dict[str, Any]:
     if api_key is not None:
-        os.environ["GEMINI_API_KEY"] = api_key.strip()
+        cleaned = api_key.strip()
+        if _is_valid_key_format(cleaned):
+            os.environ["GEMINI_API_KEY"] = cleaned
+            _last_error["message"] = None
+        else:
+            _clear_invalid_saved_key()
+            if cleaned:
+                _last_error["message"] = "Khóa API không hợp lệ (Khóa Google AI Studio phải bắt đầu bằng 'AIzaSy...' và dài ~39 ký tự)."
     if model and model.strip():
         os.environ["GEMINI_MODEL"] = model.strip()
-    # Lưu bền vững xuống ổ đĩa máy chủ (/home/site trên Azure) để mọi giám khảo truy cập từ xa đều dùng được
-    payload = {
-        "api_key": os.environ.get("GEMINI_API_KEY", ""),
-        "model": os.environ.get("GEMINI_MODEL", DEFAULT_MODEL),
-    }
-    for cfg_path in PERSISTENT_CONFIG_PATHS:
-        try:
-            if cfg_path.parent.exists():
-                cfg_path.write_text(json.dumps(payload), encoding="utf-8")
-                break
-        except Exception:
-            continue
+
+    if _api_key():
+        payload = {
+            "api_key": _api_key(),
+            "model": os.environ.get("GEMINI_MODEL", DEFAULT_MODEL),
+        }
+        for cfg_path in PERSISTENT_CONFIG_PATHS:
+            try:
+                if cfg_path.parent.exists():
+                    cfg_path.write_text(json.dumps(payload), encoding="utf-8")
+                    break
+            except Exception:
+                continue
     return ai_status()
 
 
 def ai_status() -> Dict[str, Any]:
     enabled = bool(_api_key())
     return {
-        "provider": "Google AI Studio (Free-Tier Cascade)" if enabled else "Rule-based RAG (offline)",
-        "model": _model() if enabled else "edualert-rag-v2 (deterministic)",
+        "provider": "Google AI Studio + Least-Privilege SQL" if enabled else "Least-Privilege SQL + RAG Engine",
+        "model": _model() if enabled else "SQL-Explorer-v3 (Read-Only Least Privilege)",
         "gemini_enabled": enabled,
-        "mode": "HYBRID_GROUNDED" if enabled else "OFFLINE_RAG",
+        "least_privilege_sql": True,
+        "mode": "HYBRID_GROUNDED" if enabled else "SQL_RAG_ENGINE",
         "free_cascade_models": FREE_TIER_CASCADE,
         "last_error": _last_error["message"],
         "how_to_enable": (
-            "Lấy khóa miễn phí 100% (không cần thẻ tín dụng) tại https://aistudio.google.com/apikey "
-            "rồi dán trực tiếp vào mục '⚙ Cấu hình API Key' trên giao diện hoặc đặt biến GEMINI_API_KEY trên Azure."
+            "Đang bật sẵn truy vấn trực tiếp CSDL dưới quyền tối thiểu (Read-Only SQLite Authorizer). "
+            "Có thể gắn thêm khóa miễn phí AIzaSy... từ https://aistudio.google.com/apikey để kích hoạt thêm Google Gemini."
         ),
     }
 
@@ -135,18 +159,17 @@ ROLE_PERSONA = {
     "ADMIN": "Quản trị hệ thống",
 }
 
-SYSTEM_PROMPT = """Bạn là EduAlert AI — trợ lý học vụ của Trường Đại học Mở TP.HCM.
-Nhiệm vụ: giải thích quy chế Điều 11 Thông tư 08/2021/TT-BGDĐT, phân tích hồ sơ cảnh báo học tập,
-và đề xuất kế hoạch can thiệp/cải thiện cụ thể, khả thi.
+SYSTEM_PROMPT = f"""Bạn là EduAlert AI — trợ lý phân tích dữ liệu học vụ của Trường Đại học Mở TP.HCM.
+Bạn được cấp quyền ĐỌC TỐI THIỂU (Read-Only Least Privilege) trên CSDL 18 bảng của EduAlert.
+
+{DB_SCHEMA_SUMMARY}
 
 QUY TẮC BẮT BUỘC:
-1. Chỉ dùng số liệu có trong mục [DỮ LIỆU HỆ THỐNG]. Tuyệt đối không bịa MSSV, điểm, tín chỉ hay tên người.
-2. Khi nêu quy định, trích dẫn rõ (ví dụ: "Điều 11, Khoản 1b TT08/2021").
-3. Quyết định cảnh báo/buộc thôi học thuộc thẩm quyền Nhà trường; mô hình AI chỉ mang tính hỗ trợ.
-4. Tôn trọng Nghị định 13/2023/NĐ-CP: không tiết lộ dữ liệu ngoài phạm vi quyền của người hỏi.
-5. Trả lời bằng tiếng Việt, ngắn gọn, có cấu trúc Markdown (tiêu đề ###, gạch đầu dòng, **in đậm** số liệu chính).
-6. Nếu dữ liệu không đủ để trả lời, nói rõ và gợi ý câu hỏi cụ thể hơn.
-7. Giọng điệu: chuyên nghiệp, ân cần; với sinh viên thì động viên, mang tính hướng dẫn."""
+1. Chỉ dùng số liệu có trong mục [DỮ LIỆU TRUY VẤN TỪ CSDL]. Tuyệt đối không bịa MSSV, điểm, tín chỉ hay tên người.
+2. Phân biệt rõ câu hỏi về nhóm sinh viên TỐT/GIỎI/ĐIỂM CAO với nhóm sinh viên YẾU/NGUY CƠ CAO.
+3. Khi nêu quy định pháp lý, trích dẫn rõ (ví dụ: "Điều 11, Khoản 1b TT08/2021").
+4. Tôn trọng Nghị định 13/2023/NĐ-CP và nguyên lý Least Privilege: không tiết lộ dữ liệu ngoài phạm vi quyền của người hỏi.
+5. Trả lời bằng tiếng Việt, trình bày rõ ràng bằng Markdown (tiêu đề ###, danh sách đánh số, **in đậm** số liệu chính)."""
 
 
 def _build_prompt(question: str, facts: Dict[str, Any], role: str, display_name: str) -> str:
@@ -154,13 +177,12 @@ def _build_prompt(question: str, facts: Dict[str, Any], role: str, display_name:
     sql = facts.get("sql_executed") or "(không truy vấn CSDL)"
     return (
         f"[NGƯỜI HỎI] {display_name or 'Người dùng'} — vai trò: {ROLE_PERSONA.get(role, role)}\n\n"
+        f"[DỮ LIỆU TRUY VẤN TỪ CSDL — Đã thực thi dưới quyền Read-Only Least Privilege]\n"
+        f"Câu lệnh SQL đã chạy: {sql}\n"
+        f"Kết quả trích xuất:\n{facts.get('answer', '')}\n\n"
         f"[QUY CHẾ THAM CHIẾU]\n{regulation}\n\n"
-        f"[DỮ LIỆU HỆ THỐNG — kết quả truy xuất xác định, SQL chỉ đọc]\n"
-        f"SQL: {sql}\n"
-        f"Kết quả:\n{facts.get('answer', '')}\n\n"
-        f"[CÂU HỎI] {question}\n\n"
-        f"Hãy trả lời câu hỏi dựa trên dữ liệu trên. Nếu là câu hỏi về một sinh viên, hãy giải thích nguyên nhân "
-        f"và đưa ra kế hoạch hành động 3–5 bước có mốc thời gian."
+        f"[CÂU HỎI CỦA NGƯỜI DÙNG] {question}\n\n"
+        f"Hãy tổng hợp và trình bày câu trả lời thật chính xác, bám sát 100% danh sách và số liệu trong [DỮ LIỆU TRUY VẤN TỪ CSDL]."
     )
 
 
@@ -180,7 +202,7 @@ def _call_single_model(candidate_model: str, prompt: str, history: List[Dict[str
 
     payload: Dict[str, Any] = {
         "contents": contents,
-        "generationConfig": {"temperature": 0.35, "maxOutputTokens": 1400},
+        "generationConfig": {"temperature": 0.25, "maxOutputTokens": 1500},
     }
     if not is_gemma:
         payload["systemInstruction"] = {"parts": [{"text": SYSTEM_PROMPT}]}
@@ -204,7 +226,6 @@ def _call_gemini(
     api_key: Optional[str] = None,
     model: Optional[str] = None,
 ) -> Tuple[Optional[str], str]:
-    """Gọi Google AI Studio với cơ chế tự động xoay vòng (Cascade) qua các mô hình Free Tier."""
     key = _api_key(api_key)
     if not key:
         return None, ""
@@ -219,13 +240,17 @@ def _call_gemini(
                 return text, candidate
         except urllib.error.HTTPError as e:
             detail = e.read().decode("utf-8", errors="ignore")[:240]
-            _last_error.update(message=f"{candidate} -> HTTP {e.code}: {detail}", at=time.time())
-            # Nếu khóa API sai hoàn toàn (400 API_KEY_INVALID / 403), dừng ngay không cần thử model khác
-            if e.code in (400, 401, 403) and "API_KEY_INVALID" in detail:
-                break
+            if e.code in (400, 401, 403) and ("API_KEY_INVALID" in detail or "API key not valid" in detail):
+                _clear_invalid_saved_key()
+                _last_error.update(
+                    message="Khóa Google AI API không hợp lệ — đã tự động chuyển về Bộ máy SQL Least-Privilege nội bộ.",
+                    at=time.time(),
+                )
+                return None, ""
+            _last_error.update(message=f"{candidate} HTTP {e.code}", at=time.time())
             continue
         except Exception as e:
-            _last_error.update(message=f"{candidate} -> {str(e)[:200]}", at=time.time())
+            _last_error.update(message=f"{candidate}: {str(e)[:120]}", at=time.time())
             continue
     return None, preferred
 
@@ -239,14 +264,18 @@ def ask_assistant(
     api_key: Optional[str] = None,
     model: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Điểm vào duy nhất cho Copilot: luôn chạy tầng xác định trước, sau đó xoay vòng Free-Tier Gemini/Gemma."""
+    """
+    Điểm vào duy nhất cho Trợ lý AI:
+    1. Luôn chạy Bộ máy NL-to-SQL Least-Privilege (backend.copilot) để lấy dữ liệu thật từ SQLite.
+    2. Nếu có khóa Gemini hợp lệ, Gemini sẽ diễn đạt sâu hơn dựa trên kết quả SQL đó.
+    """
+    t0 = time.time()
     facts = answer_copilot_query(question, restrict_student_id=restrict_student_id)
 
     if facts.get("blocked"):
         facts["engine"] = "rls-guard"
         return facts
 
-    t0 = time.time()
     generated, used_model = _call_gemini(
         _build_prompt(question, facts, role, display_name),
         history or [],
@@ -263,8 +292,7 @@ def ask_assistant(
             "latency_ms": int((time.time() - t0) * 1000),
         }
 
-    facts["engine"] = "rule-based-rag"
+    facts["engine"] = "sql-least-privilege"
     facts["grounded"] = True
-    if _api_key(api_key) and _last_error["message"]:
-        facts["fallback_reason"] = f"Google AI tạm thời bận ({_last_error['message'][:80]}) — đã trả lời bằng chế độ RAG offline."
+    facts["latency_ms"] = max(1, int((time.time() - t0) * 1000))
     return facts

@@ -147,20 +147,74 @@ def _student_profile(stu) -> dict:
     }
 
 
-# 1. POST /api/auth/login (M01 Level-Based Authentication Gate)
+DEFAULT_PASSWORD = "123"
+
+
+def _ensure_credentials_table(conn) -> None:
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS account_credentials (
+            username TEXT PRIMARY KEY,
+            password_hash TEXT NOT NULL,
+            must_change INTEGER NOT NULL DEFAULT 1,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+
+
+def _verify_and_check_password(conn, uname: str, raw_password: str):
+    """
+    Kiểm tra mật khẩu đăng nhập.
+    - Mặc định mọi tài khoản có mật khẩu lần đầu là '123' và bắt buộc phải đổi mật khẩu (must_change=True).
+    - Trả về (ok: bool, must_change: bool, err_msg: str).
+    """
+    _ensure_credentials_table(conn)
+    key = uname.strip().lower()
+    row = conn.execute("SELECT password_hash, must_change FROM account_credentials WHERE username = ?", (key,)).fetchone()
+    pw_hash = hashlib.sha256(raw_password.encode("utf-8")).hexdigest()
+    default_hash = hashlib.sha256(DEFAULT_PASSWORD.encode("utf-8")).hexdigest()
+
+    if not row:
+        if raw_password == DEFAULT_PASSWORD:
+            conn.execute(
+                "INSERT INTO account_credentials (username, password_hash, must_change) VALUES (?, ?, 1)",
+                (key, default_hash),
+            )
+            conn.commit()
+            return True, True, ""
+        return False, True, "Sai mật khẩu! Mật khẩu mặc định lần đầu của mọi tài khoản là '123'."
+
+    if row["password_hash"] != pw_hash:
+        if row["must_change"] == 1:
+            return False, True, "Sai mật khẩu! Mật khẩu mặc định lần đầu là '123'."
+        return False, False, "Mật khẩu không chính xác. Vui lòng nhập mật khẩu mới bạn đã đổi (hoặc bấm 'Khôi phục mật khẩu 123')."
+
+    return True, bool(row["must_change"]), ""
+
+
+# 1. POST /api/auth/login (M01 Level-Based Authentication Gate with Default Password '123')
 @app.route("/api/auth/login", methods=["POST"])
 def api_login():
     body = request.get_json(force=True, silent=True) or {}
     raw = (body.get("username") or "").strip()
+    password = (body.get("password") or "").strip()
     if not raw:
         return jsonify({"error": "Vui lòng nhập tên đăng nhập hoặc mã số sinh viên."}), 400
+    if not password:
+        return jsonify({"error": "Vui lòng nhập mật khẩu (mật khẩu mặc định lần đầu là: 123)."}), 400
 
     conn = get_connection()
     stu = conn.execute("SELECT * FROM students WHERE UPPER(student_id) = ?", (raw.upper(),)).fetchone()
     if stu:
+        ok, must_change, err_msg = _verify_and_check_password(conn, stu["student_id"].lower(), password)
+        if not ok:
+            conn.close()
+            return jsonify({"error": err_msg}), 401
         profile = _student_profile(stu)
+        profile["must_change_password"] = must_change
         profile["token"] = hashlib.sha256(f"session::student::{stu['student_id']}".encode()).hexdigest()[:32]
-        log_audit(conn, None, "LOGIN", "students", {"student_id": stu["student_id"], "level": 1})
+        log_audit(conn, None, "LOGIN", "students", {"student_id": stu["student_id"], "level": 1, "must_change_password": must_change})
         conn.commit()
         conn.close()
         return jsonify(profile)
@@ -170,13 +224,18 @@ def api_login():
         conn.close()
         return jsonify({"error": f"Không tìm thấy tài khoản '{raw}'. Thử: admin, daotao, bcnkhoa, cvht_lan, sv002."}), 401
 
+    ok, must_change, err_msg = _verify_and_check_password(conn, user["username"].lower(), password)
+    if not ok:
+        conn.close()
+        return jsonify({"error": err_msg}), 401
+
     advisor = conn.execute("SELECT * FROM advisors WHERE user_id = ?", (user["user_id"],)).fetchone()
     classes = []
     if advisor:
         classes = [r["class_id"] for r in conn.execute(
             "SELECT class_id FROM classes WHERE advisor_id = ? ORDER BY class_id", (advisor["advisor_id"],)
         ).fetchall()]
-    log_audit(conn, user["user_id"], "LOGIN", "users", {"username": user["username"], "role": user["role"]})
+    log_audit(conn, user["user_id"], "LOGIN", "users", {"username": user["username"], "role": user["role"], "must_change_password": must_change})
     conn.commit()
     conn.close()
 
@@ -197,9 +256,75 @@ def api_login():
             "advisor_id": advisor["advisor_id"] if advisor else None,
             "assigned_classes": classes,
             "description": LEVEL_DESCRIPTIONS[level],
+            "must_change_password": must_change,
             **_permissions(role),
         }
     )
+
+
+@app.route("/api/auth/change-password", methods=["POST"])
+def api_change_password():
+    body = request.get_json(force=True, silent=True) or {}
+    uname = (body.get("username") or "").strip().lower()
+    old_pw = (body.get("old_password") or "").strip()
+    new_pw = (body.get("new_password") or "").strip()
+    if not uname or not old_pw or not new_pw:
+        return jsonify({"error": "Vui lòng nhập đầy đủ mật khẩu hiện tại và mật khẩu mới."}), 400
+    if new_pw == DEFAULT_PASSWORD:
+        return jsonify({"error": "Mật khẩu mới không được trùng với mật khẩu mặc định '123'! Vui lòng chọn mật khẩu khác."}), 400
+    if len(new_pw) < 3:
+        return jsonify({"error": "Mật khẩu mới phải có ít nhất 3 ký tự."}), 400
+    if new_pw == old_pw:
+        return jsonify({"error": "Mật khẩu mới phải khác mật khẩu hiện tại."}), 400
+
+    conn = get_connection()
+    ok, _, err_msg = _verify_and_check_password(conn, uname, old_pw)
+    if not ok:
+        conn.close()
+        return jsonify({"error": err_msg}), 401
+
+    new_hash = hashlib.sha256(new_pw.encode("utf-8")).hexdigest()
+    conn.execute(
+        """
+        INSERT INTO account_credentials (username, password_hash, must_change, updated_at)
+        VALUES (?, ?, 0, CURRENT_TIMESTAMP)
+        ON CONFLICT(username) DO UPDATE SET
+            password_hash = excluded.password_hash,
+            must_change = 0,
+            updated_at = CURRENT_TIMESTAMP
+        """,
+        (uname, new_hash),
+    )
+    log_audit(conn, None, "PASSWORD_CHANGED", "account_credentials", {"username": uname})
+    conn.commit()
+    conn.close()
+    return jsonify({"status": "success", "message": f"Đã đổi mật khẩu thành công cho tài khoản '{uname}'!", "must_change_password": False})
+
+
+@app.route("/api/auth/reset-password", methods=["POST"])
+def api_reset_password():
+    body = request.get_json(force=True, silent=True) or {}
+    uname = (body.get("username") or "").strip().lower()
+    if not uname:
+        return jsonify({"error": "Vui lòng chọn tên tài khoản cần khôi phục mật khẩu mặc định."}), 400
+    conn = get_connection()
+    _ensure_credentials_table(conn)
+    default_hash = hashlib.sha256(DEFAULT_PASSWORD.encode("utf-8")).hexdigest()
+    conn.execute(
+        """
+        INSERT INTO account_credentials (username, password_hash, must_change, updated_at)
+        VALUES (?, ?, 1, CURRENT_TIMESTAMP)
+        ON CONFLICT(username) DO UPDATE SET
+            password_hash = excluded.password_hash,
+            must_change = 1,
+            updated_at = CURRENT_TIMESTAMP
+        """,
+        (uname, default_hash),
+    )
+    log_audit(conn, None, "PASSWORD_RESET_TO_DEFAULT", "account_credentials", {"username": uname})
+    conn.commit()
+    conn.close()
+    return jsonify({"status": "success", "message": f"Đã khôi phục mật khẩu mặc định '123' cho tài khoản '{uname}'."})
 
 
 # 1b. GET /api/auth/roles (M01 RBAC & RLS Role Matrix — 5 levels)

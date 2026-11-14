@@ -202,7 +202,7 @@ function normalizeGraph(raw) {
 // ============================================================================
 // 2. HEADER & ROLE NAVIGATION (RBAC / RLS — 5 LEVELS)
 // ============================================================================
-function Header({ currentUsername, userRoles, onUserChange, onExportClick, onOpenRoleInfo, onLogout, activeUser }) {
+function Header({ currentUsername, userRoles, onUserChange, onExportClick, onOpenRoleInfo, onOpenChangePassword, onLogout, activeUser }) {
   const roles = Array.isArray(userRoles) && userRoles.length > 0 ? userRoles : [
     { username: "sv002", role: "STUDENT", level: 1, level_label: "LV1 · Sinh viên", display_name: "Trần Hoàng Nam (SV002)", assigned_classes: ["DH23CS02"] },
     { username: "daotao", role: "TRAINING_DEPT", level: 4, level_label: "LV4 · Phòng Đào tạo", display_name: "Phòng Quản lý Đào tạo (Toàn trường)", assigned_classes: [] },
@@ -270,6 +270,16 @@ function Header({ currentUsername, userRoles, onUserChange, onExportClick, onOpe
             ⬇ Xuất Excel/CSV (M12)
           </button>
         )}
+
+        <button
+          type="button"
+          className="graph-btn"
+          style={{ background: "#1E40AF", color: "#F8FAFC", borderColor: "#1D4ED8" }}
+          onClick={onOpenChangePassword}
+          title="Đổi mật khẩu tài khoản hiện tại"
+        >
+          🔑 Đổi mật khẩu
+        </button>
 
         <button
           type="button"
@@ -2768,11 +2778,15 @@ function RoleExplanationModal({ onClose }) {
 // ============================================================================
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return sessionStorage.getItem("edualert_logged_in") === "true";
+    return sessionStorage.getItem("edualert_auth_v2") === "true";
   });
   const [currentUsername, setCurrentUsername] = useState(() => {
     return sessionStorage.getItem("edualert_username") || "cvht_lan";
   });
+  const [mustChangePassword, setMustChangePassword] = useState(() => {
+    return sessionStorage.getItem("edualert_must_change_pw") === "true";
+  });
+  const [changePasswordModalOpen, setChangePasswordModalOpen] = useState(false);
   const [userRoles, setUserRoles] = useState([]);
   const [enforceRls, setEnforceRls] = useState(true);
   const [roleInfoModalOpen, setRoleInfoModalOpen] = useState(false);
@@ -2982,8 +2996,12 @@ function App() {
   const handleLoginSuccess = (userData) => {
     setCurrentUsername(userData.username);
     setIsAuthenticated(true);
-    sessionStorage.setItem("edualert_logged_in", "true");
+    const needChange = !!userData.must_change_password;
+    setMustChangePassword(needChange);
+    setChangePasswordModalOpen(needChange);
+    sessionStorage.setItem("edualert_auth_v2", "true");
     sessionStorage.setItem("edualert_username", userData.username);
+    sessionStorage.setItem("edualert_must_change_pw", needChange ? "true" : "false");
     if (userData.level === 1 && userData.student_id) {
       setStudentId(userData.student_id);
       setActiveTab("slip");
@@ -2996,8 +3014,11 @@ function App() {
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    sessionStorage.removeItem("edualert_logged_in");
+    setMustChangePassword(false);
+    setChangePasswordModalOpen(false);
+    sessionStorage.removeItem("edualert_auth_v2");
     sessionStorage.removeItem("edualert_username");
+    sessionStorage.removeItem("edualert_must_change_pw");
     showToast("Đã đăng xuất an toàn khỏi hệ thống.");
   };
 
@@ -3248,6 +3269,7 @@ function App() {
           onUserChange={handleUserChange}
           onExportClick={() => (window.location.href = "/api/reports/export")}
           onOpenRoleInfo={() => setRoleInfoModalOpen(true)}
+          onOpenChangePassword={() => setChangePasswordModalOpen(true)}
           onLogout={handleLogout}
           activeUser={activeUser}
         />
@@ -3407,6 +3429,23 @@ function App() {
         {roleInfoModalOpen && (
           <RoleExplanationModal
             onClose={() => setRoleInfoModalOpen(false)}
+          />
+        )}
+
+        {(changePasswordModalOpen || mustChangePassword) && (
+          <ChangePasswordModal
+            username={currentUsername}
+            displayName={activeUser ? activeUser.display_name : currentUsername}
+            forced={mustChangePassword}
+            onClose={() => {
+              if (!mustChangePassword) setChangePasswordModalOpen(false);
+            }}
+            onSuccess={(msg) => {
+              setMustChangePassword(false);
+              setChangePasswordModalOpen(false);
+              sessionStorage.setItem("edualert_must_change_pw", "false");
+              showToast(msg || "Đã đổi mật khẩu thành công!");
+            }}
           />
         )}
 
