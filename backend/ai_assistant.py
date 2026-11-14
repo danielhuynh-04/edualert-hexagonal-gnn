@@ -1,16 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-EduAlert — Hybrid AI Assistant (Grounded Rule-based RAG + Google Gemini API)
+EduAlert — Hybrid AI Assistant (Grounded Rule-based RAG + Google Gemini & Gemma Free-Tier Cascade)
 
-Kiến trúc "Grounded Generation":
+Kiến trúc "Grounded Generation + Multi-Model Free-Tier Cascade":
   1. Tầng xác định (deterministic): backend.copilot trích thực thể (MSSV, lớp), chạy SQL chỉ đọc,
      truy xuất Điều 11 Thông tư 08/2021 -> tạo "ngữ cảnh sự thật" (facts) có trích dẫn.
-  2. Tầng sinh ngôn ngữ (generative, tùy chọn): nếu có GEMINI_API_KEY, gửi facts + lịch sử hội thoại
-     sang Google Gemini (gói miễn phí của Google AI Studio) để diễn đạt tự nhiên, linh hoạt.
-     Gemini KHÔNG được bịa số liệu: prompt ràng buộc chỉ dùng facts được cung cấp.
-  3. Fallback: không có khóa / lỗi mạng / hết quota -> trả lời bằng tầng xác định (hệ thống vẫn chạy offline).
+  2. Tầng sinh ngôn ngữ (generative, 100% Free Tier Google AI Studio):
+     Nếu có GEMINI_API_KEY, tự động xoay vòng (Cascade) qua chuỗi 5 mô hình miễn phí của Google AI Studio:
+       - gemini-2.5-flash-lite (1,000+ req/ngày Free, tốc độ siêu nhanh < 1s)
+       - gemini-2.5-flash      (Mô hình suy luận 2.5 chủ lực)
+       - gemini-2.0-flash-lite (1,500 req/ngày Free)
+       - gemini-2.0-flash      (1,500 req/ngày Free)
+       - gemma-3-27b-it        (14,400 req/ngày Free trên cùng API Key Google AI Studio!)
+     Tổng hạn mức miễn phí lên tới >18,000 câu hỏi/ngày chỉ với 1 API Key miễn phí duy nhất.
+  3. Fallback: không có khóa / mất mạng -> trả lời bằng tầng xác định (hệ thống luôn chạy 100% không gián đoạn).
 
-Không phụ thuộc thư viện ngoài: gọi REST API bằng urllib (chuẩn thư viện Python).
 Author: Huynh Le Thanh Hai — HCMC Open University
 """
 
@@ -20,12 +24,21 @@ import time
 import urllib.request
 import urllib.error
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from backend.copilot import KNOWLEDGE_BASE, answer_copilot_query
 
 GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-DEFAULT_MODEL = "gemini-2.5-flash"
+DEFAULT_MODEL = "gemini-2.5-flash-lite"
+
+# Chuỗi xoay vòng tự động các mô hình Free Tier cao nhất trên Google AI Studio (cùng dùng 1 API Key AIza...)
+FREE_TIER_CASCADE = [
+    "gemini-2.5-flash-lite",
+    "gemini-2.5-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-2.0-flash",
+    "gemma-3-27b-it",
+]
 
 _last_error: Dict[str, Any] = {"message": None, "at": None}
 
@@ -71,14 +84,15 @@ def set_gemini_config(api_key: Optional[str] = None, model: Optional[str] = None
 def ai_status() -> Dict[str, Any]:
     enabled = bool(_api_key())
     return {
-        "provider": "Google Gemini API (Google AI Studio)" if enabled else "Rule-based RAG (offline)",
+        "provider": "Google AI Studio (Free-Tier Cascade)" if enabled else "Rule-based RAG (offline)",
         "model": _model() if enabled else "edualert-rag-v2 (deterministic)",
         "gemini_enabled": enabled,
         "mode": "HYBRID_GROUNDED" if enabled else "OFFLINE_RAG",
+        "free_cascade_models": FREE_TIER_CASCADE,
         "last_error": _last_error["message"],
         "how_to_enable": (
-            "Tạo khóa miễn phí tại https://aistudio.google.com/apikey rồi nhập trực tiếp trên giao diện "
-            "hoặc đặt biến môi trường GEMINI_API_KEY (tệp .env cục bộ hoặc App Settings trên Azure)."
+            "Lấy khóa miễn phí 100% (không cần thẻ tín dụng) tại https://aistudio.google.com/apikey "
+            "rồi dán trực tiếp vào mục '⚙ Cấu hình API Key' trên giao diện hoặc đặt biến GEMINI_API_KEY trên Azure."
         ),
     }
 
@@ -120,12 +134,8 @@ def _build_prompt(question: str, facts: Dict[str, Any], role: str, display_name:
     )
 
 
-def _call_gemini(prompt: str, history: List[Dict[str, str]], api_key: Optional[str] = None, model: Optional[str] = None) -> Optional[str]:
-    key = _api_key(api_key)
-    if not key:
-        return None
-    use_model = _model(model)
-
+def _call_single_model(candidate_model: str, prompt: str, history: List[Dict[str, str]], key: str) -> Optional[str]:
+    is_gemma = candidate_model.startswith("gemma-")
     contents = []
     for turn in (history or [])[-6:]:
         text = (turn.get("text") or "").strip()
@@ -135,32 +145,59 @@ def _call_gemini(prompt: str, history: List[Dict[str, str]], api_key: Optional[s
             "role": "user" if turn.get("sender") == "user" else "model",
             "parts": [{"text": text[:2000]}],
         })
-    contents.append({"role": "user", "parts": [{"text": prompt}]})
+    final_user_text = f"{SYSTEM_PROMPT}\n\n---\n\n{prompt}" if is_gemma else prompt
+    contents.append({"role": "user", "parts": [{"text": final_user_text}]})
 
-    payload = {
-        "systemInstruction": {"parts": [{"text": SYSTEM_PROMPT}]},
+    payload: Dict[str, Any] = {
         "contents": contents,
         "generationConfig": {"temperature": 0.35, "maxOutputTokens": 1400},
     }
+    if not is_gemma:
+        payload["systemInstruction"] = {"parts": [{"text": SYSTEM_PROMPT}]}
+
     req = urllib.request.Request(
-        GEMINI_ENDPOINT.format(model=use_model),
+        GEMINI_ENDPOINT.format(model=candidate_model),
         data=json.dumps(payload).encode("utf-8"),
         headers={"Content-Type": "application/json", "x-goog-api-key": key},
         method="POST",
     )
-    try:
-        with urllib.request.urlopen(req, timeout=25) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-        parts = data["candidates"][0]["content"]["parts"]
-        text = "".join(p.get("text", "") for p in parts).strip()
-        _last_error["message"] = None
-        return text or None
-    except urllib.error.HTTPError as e:
-        detail = e.read().decode("utf-8", errors="ignore")[:300]
-        _last_error.update(message=f"HTTP {e.code}: {detail}", at=time.time())
-    except Exception as e:  # network error, timeout, malformed response
-        _last_error.update(message=str(e)[:300], at=time.time())
-    return None
+    with urllib.request.urlopen(req, timeout=22) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    parts = data["candidates"][0]["content"]["parts"]
+    text = "".join(p.get("text", "") for p in parts).strip()
+    return text or None
+
+
+def _call_gemini(
+    prompt: str,
+    history: List[Dict[str, str]],
+    api_key: Optional[str] = None,
+    model: Optional[str] = None,
+) -> Tuple[Optional[str], str]:
+    """Gọi Google AI Studio với cơ chế tự động xoay vòng (Cascade) qua các mô hình Free Tier."""
+    key = _api_key(api_key)
+    if not key:
+        return None, ""
+    preferred = _model(model)
+    candidates = [preferred] + [m for m in FREE_TIER_CASCADE if m != preferred]
+
+    for candidate in candidates:
+        try:
+            text = _call_single_model(candidate, prompt, history, key)
+            if text:
+                _last_error["message"] = None
+                return text, candidate
+        except urllib.error.HTTPError as e:
+            detail = e.read().decode("utf-8", errors="ignore")[:240]
+            _last_error.update(message=f"{candidate} -> HTTP {e.code}: {detail}", at=time.time())
+            # Nếu khóa API sai hoàn toàn (400 API_KEY_INVALID / 403), dừng ngay không cần thử model khác
+            if e.code in (400, 401, 403) and "API_KEY_INVALID" in detail:
+                break
+            continue
+        except Exception as e:
+            _last_error.update(message=f"{candidate} -> {str(e)[:200]}", at=time.time())
+            continue
+    return None, preferred
 
 
 def ask_assistant(
@@ -172,7 +209,7 @@ def ask_assistant(
     api_key: Optional[str] = None,
     model: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Điểm vào duy nhất cho Copilot: luôn chạy tầng xác định trước, sau đó (tùy chọn) Gemini diễn đạt."""
+    """Điểm vào duy nhất cho Copilot: luôn chạy tầng xác định trước, sau đó xoay vòng Free-Tier Gemini/Gemma."""
     facts = answer_copilot_query(question, restrict_student_id=restrict_student_id)
 
     if facts.get("blocked"):
@@ -180,14 +217,18 @@ def ask_assistant(
         return facts
 
     t0 = time.time()
-    use_model = _model(model)
-    generated = _call_gemini(_build_prompt(question, facts, role, display_name), history or [], api_key=api_key, model=use_model)
+    generated, used_model = _call_gemini(
+        _build_prompt(question, facts, role, display_name),
+        history or [],
+        api_key=api_key,
+        model=model,
+    )
     if generated:
         return {
             "answer": generated,
             "citations": facts.get("citations", []),
             "sql_executed": facts.get("sql_executed"),
-            "engine": f"gemini:{use_model}",
+            "engine": f"gemini:{used_model}",
             "grounded": True,
             "latency_ms": int((time.time() - t0) * 1000),
         }
@@ -195,6 +236,5 @@ def ask_assistant(
     facts["engine"] = "rule-based-rag"
     facts["grounded"] = True
     if _api_key(api_key) and _last_error["message"]:
-        facts["fallback_reason"] = f"Gemini tạm thời không phản hồi ({_last_error['message'][:80]}) — đã chuyển sang chế độ RAG offline."
+        facts["fallback_reason"] = f"Google AI tạm thời bận ({_last_error['message'][:80]}) — đã trả lời bằng chế độ RAG offline."
     return facts
-

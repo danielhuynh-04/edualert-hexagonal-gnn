@@ -225,8 +225,9 @@ function AiAssistant({ activeUser, compact, pendingQuestion, onPendingConsumed }
   const [input, setInput] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [openSql, setOpenSql] = React.useState({});
+  const [showKeyForm, setShowKeyForm] = React.useState(false);
   const [apiKeyInput, setApiKeyInput] = React.useState(() => localStorage.getItem("edualert_gemini_key") || "");
-  const [modelSelect, setModelSelect] = React.useState(() => localStorage.getItem("edualert_gemini_model") || "gemini-2.5-flash");
+  const [modelSelect, setModelSelect] = React.useState(() => localStorage.getItem("edualert_gemini_model") || "gemini-2.5-flash-lite");
   const [configSavedMsg, setConfigSavedMsg] = React.useState("");
   const listRef = React.useRef(null);
 
@@ -315,14 +316,50 @@ function AiAssistant({ activeUser, compact, pendingQuestion, onPendingConsumed }
     <section className="ai-panel" aria-label="Trợ lý AI EduAlert">
       <div className="ai-head">
         <h2>✦ Trợ lý AI EduAlert</h2>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <span className={`ai-status ${gemOn ? "on" : ""}`} title={status ? status.how_to_enable : ""}>
-            <span className="dot" />
-            {status ? (gemOn ? `Google ${status.model}` : "Chế độ offline (RAG)") : "Đang kiểm tra…"}
-          </span>
+        <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+          <button
+            type="button"
+            className="small"
+            onClick={() => setShowKeyForm((v) => !v)}
+            style={{ cursor: "pointer", fontWeight: 700, border: "1px solid #C7D2FE", borderRadius: 999, padding: "4px 10px", background: gemOn ? "#DCFCE7" : "#EEF2FF", color: gemOn ? "#15803D" : "#4338CA", fontSize: ".74rem" }}
+            title="Bấm để dán Google AI Studio API Key miễn phí"
+          >
+            <span className="dot" style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: gemOn ? "#16A34A" : "#6366F1", marginRight: 5 }} />
+            {status ? (gemOn ? `✦ ${status.model} (Free)` : "⚙ Bật Google AI Free (Đang ở RAG Offline)") : "Đang kiểm tra…"}
+          </button>
           <button type="button" className="small" onClick={() => setMessages([{ sender: "bot", text: greeting, engine: "system" }])} title="Xóa hội thoại">↺</button>
         </div>
       </div>
+
+      {showKeyForm && (
+        <form onSubmit={handleSaveConfig} style={{ padding: "10px 14px", background: "#EEF2FF", borderBottom: "1px solid #C7D2FE", display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+          <span style={{ fontSize: ".75rem", color: "#312E81", fontWeight: 700 }}>
+            🔑 Lấy Key 100% Free (không cần thẻ) tại <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" style={{ color: "#4338CA", textDecoration: "underline" }}>aistudio.google.com/apikey ↗</a>:
+          </span>
+          <input
+            type="password"
+            value={apiKeyInput}
+            onChange={(e) => setApiKeyInput(e.target.value)}
+            placeholder="Dán mã AIzaSy... vào đây"
+            style={{ flex: "1 1 180px", padding: "5px 8px", borderRadius: 6, border: "1px solid #C7D2FE", fontSize: ".78rem" }}
+          />
+          <select
+            value={modelSelect}
+            onChange={(e) => setModelSelect(e.target.value)}
+            style={{ padding: "5px 8px", borderRadius: 6, border: "1px solid #C7D2FE", fontSize: ".78rem", background: "#fff" }}
+          >
+            <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite (Free cao nhất · 1000+ req/ngày)</option>
+            <option value="gemini-2.5-flash">gemini-2.5-flash (Thông minh · Free)</option>
+            <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite (Siêu nhanh · 1500 req/ngày)</option>
+            <option value="gemini-2.0-flash">gemini-2.0-flash (Ổn định · 1500 req/ngày)</option>
+            <option value="gemma-3-27b-it">gemma-3-27b-it (Siêu Free · 14,400 req/ngày)</option>
+          </select>
+          <button type="submit" style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: "#4F46E5", color: "#fff", fontWeight: 700, fontSize: ".78rem", cursor: "pointer" }}>
+            ⚡ Lưu &amp; Bật
+          </button>
+          {configSavedMsg && <span style={{ fontSize: ".75rem", color: "#15803D", fontWeight: 700 }}>{configSavedMsg}</span>}
+        </form>
+      )}
 
       <div className="ai-msgs" ref={listRef} aria-live="polite">
         {messages.map((m, i) => (
@@ -414,10 +451,11 @@ function AiAssistant({ activeUser, compact, pendingQuestion, onPendingConsumed }
               onChange={(e) => setModelSelect(e.target.value)}
               style={{ width: "100%", padding: "6px 8px", borderRadius: "6px", border: "1px solid #C7D2FE", fontSize: ".8rem", background: "#fff" }}
             >
-              <option value="gemini-2.5-flash">gemini-2.5-flash (Khuyên dùng - Free)</option>
-              <option value="gemini-2.0-flash">gemini-2.0-flash (Nhanh - Free)</option>
-              <option value="gemini-1.5-flash">gemini-1.5-flash (Ổn định - Free)</option>
-              <option value="gemini-1.5-pro">gemini-1.5-pro (Chuyên sâu)</option>
+              <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite (Free cao nhất · 1000+ req/ngày)</option>
+              <option value="gemini-2.5-flash">gemini-2.5-flash (Thông minh · Free)</option>
+              <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite (Siêu nhanh · 1500 req/ngày)</option>
+              <option value="gemini-2.0-flash">gemini-2.0-flash (Ổn định · 1500 req/ngày)</option>
+              <option value="gemma-3-27b-it">gemma-3-27b-it (Siêu Free · 14,400 req/ngày)</option>
             </select>
             <button type="submit" className="primary" style={{ padding: "7px", fontSize: ".8rem", fontWeight: 700, background: "var(--ai)" }}>
               ⚡ Lưu &amp; Kích hoạt Gemini
