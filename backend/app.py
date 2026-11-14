@@ -42,17 +42,31 @@ FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 app = Flask(__name__, static_folder=str(FRONTEND_DIR), static_url_path="/static")
 
 
+_INITIALIZED = False
+
+
 def ensure_initialized() -> None:
+    global _INITIALIZED
+    if _INITIALIZED and DB_PATH.exists():
+        return
     if not DB_PATH.exists():
         seed_all(num_students=180, seed=42)
         run_full_pipeline()
     else:
+        init_db()
         conn = get_connection()
         cnt = conn.execute("SELECT COUNT(*) FROM risk_assessments").fetchone()[0]
         conn.close()
         if cnt == 0:
             seed_all(num_students=180, seed=42)
             run_full_pipeline()
+    _INITIALIZED = True
+
+
+@app.before_request
+def _auto_ensure_db():
+    if request.path.startswith("/api/"):
+        ensure_initialized()
 
 
 @app.route("/")

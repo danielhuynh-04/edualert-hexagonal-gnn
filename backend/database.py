@@ -9,12 +9,17 @@ import sqlite3
 import json
 from pathlib import Path
 
-DB_PATH = Path(__file__).resolve().parent.parent / "db" / "edualert.db"
+if os.environ.get("EDUALERT_DB_PATH"):
+    DB_PATH = Path(os.environ["EDUALERT_DB_PATH"])
+elif os.environ.get("WEBSITE_SITE_NAME") or os.name != "nt":
+    DB_PATH = Path("/tmp/edualert.db")
+else:
+    DB_PATH = Path(__file__).resolve().parent.parent / "db" / "edualert.db"
 
 
 def get_connection() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = sqlite3.connect(str(DB_PATH), timeout=30.0)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
     return conn
